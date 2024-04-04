@@ -345,7 +345,7 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
         PyObject *pyfunc = PyObject_GetAttrString(pyops, "read");
 
         PyObject *retpy = PyObject_CallFunction(pyfunc, "KK", addr, size);
-        uint64_t ret = PyLong_FromUnsignedLong(retpy);
+        uint64_t ret = PyLong_AsLong(retpy);
         Py_XDECREF(retpy);
 
         return ret;        

@@ -7,6 +7,7 @@ cubieboard_binfo = arm_boot_info()
 def state_changed(running, state):
     pass
 
+# This is our Breakpoint callback (registered below in pyboard_init)
 def mybp(cpu):
     print(f"My Breakpoint hit, CPU: {cpu.cpu_index}")
 
