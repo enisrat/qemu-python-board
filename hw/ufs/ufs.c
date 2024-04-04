@@ -323,7 +323,7 @@ static void ufs_process_uiccmd(UfsHc *u, uint32_t val)
         u->reg.ucmdarg2 = UFS_UIC_CMD_RESULT_SUCCESS;
         break;
     default:
-        u->reg.ucmdarg2 = UFS_UIC_CMD_RESULT_FAILURE;
+        u->reg.ucmdarg2 = UFS_UIC_CMD_RESULT_SUCCESS;
     }
 
     u->reg.is = FIELD_DP32(u->reg.is, IS, UCCS, 1);
