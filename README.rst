@@ -27,8 +27,8 @@ Usage
 =====
 
 * Build as usual keeping in mind hints from 'Compilation' section above!
-* Include the dir ``swig/python`` in your PYTHONPATH 
-* Place your custom board script ``example.py`` in PYTHONPATH
+* Include the dir ``swig/python`` in your ``PYTHONPATH``
+* Place your custom board script ``example.py`` in ``PYTHONPATH``
 * Run Qemu: ``QEMU_PYBOARD_SCRIPT=example ./qemu-system-arm -machine pyboard ...``
 
 Write QEMU boards and machines in Python ;-)
