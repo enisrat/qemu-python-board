@@ -1,6 +1,7 @@
 from pyboard import *
 import sys
 
+cubieboard_binfo = arm_boot_info()
 
 def pyboard_init(ms):
     print(f"Hello from pyboard_init: {ms}")
@@ -44,7 +45,7 @@ def pyboard_init(ms):
     if di:
         blk =  blk_by_legacy_dinfo(di)
     else:
-        di = 0
+        blk = 0
     bus = qdev_get_child_bus(DEVICE(a10), "sd-bus")
 
     # Plug in SD card */
@@ -61,10 +62,12 @@ def pyboard_init(ms):
     
     # TODO create and connect IDE devices for ide_drive_get() */
 
-    binfo = arm_boot_info()
+    
+    cubieboard_binfo.loader_start = AW_A10_SDRAM_BASE
+    cubieboard_binfo.board_id = 0x1008
 
-    binfo.ram_size = ms.ram_size
-    arm_load_kernel(a10.cpu, ms, binfo)
+    cubieboard_binfo.ram_size = ms.ram_size
+    arm_load_kernel(a10.cpu, ms, cubieboard_binfo)
 
     print("arm_load_kernel OK")
 
@@ -78,7 +81,7 @@ def machine_init(mc):
 
     mc.desc = "Python example as 'cubietech cubieboard (Cortex-A8)'"
     mc.default_cpu_type = "cortex-a8-arm-cpu"
-    mc.default_ram_size = 512*1024*1024
+    mc.default_ram_size = 1024*1024*1024
     mc.init = pyboard_init;
     mc.block_default_type = IF_IDE;
     mc.units_per_default_bus = 1

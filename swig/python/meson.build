@@ -14,6 +14,16 @@ memory_h_preprocess = custom_target(
     command: [ 'python3', meson.current_source_dir() / 'replace_templated_headers.py', meson.global_source_root()+ '/include']
 )
 
+# Just symlink the example.py, so it is in the same folder as SWIG target module
+symlink_example = custom_target(
+    'symlink_example',
+    input: 'example.py',
+    output: 'example.py',
+    command: ['ln', '-sfr', '@INPUT@', '@OUTPUT@']
+)
+
+# The SWIG call. 
+# @TODO It has hardcoded config variables: SWIGWORDSIZE64 DCONFIG_INT128
 interface_wrap_c = custom_target(
     'interface_wrap.c',
     output : 'interface_wrap.c',
@@ -25,7 +35,7 @@ interface_wrap_c = custom_target(
                 '-I' + meson.global_source_root() + '/' + target_inc, 
                 '-I' + meson.current_build_dir(), 
                 '@INPUT@' ],
-    depends: [memory_h_preprocess]
+    depends: [memory_h_preprocess, symlink_example]
 )
 
 py_ss = ss.source_set()
