@@ -441,11 +441,6 @@ add_global_link_arguments(qemu_ldflags, native: false, language: all_languages)
 warn_flags = [
   '-Wundef',
   '-Wwrite-strings',
-  '-Wmissing-prototypes',
-  '-Wstrict-prototypes',
-  '-Wredundant-decls',
-  '-Wold-style-declaration',
-  '-Wold-style-definition',
   '-Wtype-limits',
   '-Wformat-security',
   '-Wformat-y2k',
@@ -823,6 +818,8 @@ if not get_option('pixman').auto() or have_system or have_tools
 endif
 
 zlib = dependency('zlib', required: true)
+
+python3 = dependency('python3-embed', required: true)
 
 libaio = not_found
 if not get_option('linux_aio').auto() or have_block
@@ -3671,6 +3668,7 @@ libmigration = static_library('migration', sources: migration_files + genh,
 migration = declare_dependency(link_with: libmigration,
                                dependencies: [zlib, qom, io])
 system_ss.add(migration)
+system_ss.add(python3)
 
 block_ss = block_ss.apply(config_targetos, strict: false)
 libblock = static_library('block', block_ss.sources() + genh,
