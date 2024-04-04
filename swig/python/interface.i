@@ -13,6 +13,68 @@
   else
     $1 = NULL;
 }
+
+/* ARM regs[16] */
+%typemap(in) uint32_t regs[ANY] (uint32_t temp[$1_dim0]) {
+  int i;
+  if (!PySequence_Check($input)) {
+    PyErr_SetString(PyExc_ValueError,"Expected a sequence");
+    return NULL;
+  }
+  if (PySequence_Length($input) != $1_dim0) {
+    PyErr_SetString(PyExc_ValueError,"Size mismatch. Expected $1_dim0 elements");
+    return NULL;
+  }
+  for (i = 0; i < $1_dim0; i++) {
+    PyObject *o = PySequence_GetItem($input,i);
+    if (PyNumber_Check(o)) {
+      temp[i] = (uint32_t) PyLong_AsLong(o);
+    } else {
+      PyErr_SetString(PyExc_ValueError,"Sequence elements must be numbers");      
+      return NULL;
+    }
+  }
+  $1 = temp;
+}
+/* ARM xregs[32] */
+%typemap(in) uint64_t xregs[ANY] (uint64_t temp[$1_dim0]) {
+  int i;
+  if (!PySequence_Check($input)) {
+    PyErr_SetString(PyExc_ValueError,"Expected a sequence");
+    return NULL;
+  }
+  if (PySequence_Length($input) != $1_dim0) {
+    PyErr_SetString(PyExc_ValueError,"Size mismatch. Expected $1_dim0 elements");
+    return NULL;
+  }
+  for (i = 0; i < $1_dim0; i++) {
+    PyObject *o = PySequence_GetItem($input,i);
+    if (PyNumber_Check(o)) {
+      temp[i] = (uint64_t) PyLong_AsLong(o);
+    } else {
+      PyErr_SetString(PyExc_ValueError,"Sequence elements must be numbers");      
+      return NULL;
+    }
+  }
+  $1 = temp;
+}
+%typemap(out) uint32_t regs[ANY] {
+ int i;
+  $result = PyList_New($1_dim0);
+  for (i = 0; i < $1_dim0; i++) {
+    PyObject *o = PyLong_FromUnsignedLong((unsigned long) $1[i]);
+    PyList_SetItem($result,i,o);
+  }
+}
+%typemap(out) uint64_t xregs[ANY] {
+ int i;
+  $result = PyList_New($1_dim0);
+  for (i = 0; i < $1_dim0; i++) {
+    PyObject *o = PyLong_FromUnsignedLong((unsigned long) $1[i]);
+    PyList_SetItem($result,i,o);
+  }
+}
+
 #pragma endregion Typemap Mods */
 
 #pragma region Header Includes
@@ -186,6 +248,16 @@ void main_loop_poll_add_notifier(Notifier *notify);
 %}
 #pragma endregion
 #pragma region qemu/accel.h
+#pragma region glib/garray.h
+%inline %{
+struct GByteArray {
+  guint8* data;
+  guint len;
+};
+GByteArray *g_byte_array_sized_new (guint reserved_size);
+GByteArray *g_byte_array_set_size (GByteArray *array, guint length);
+%}
+#pragma endregion
 %inline %{
     int accel_supported_gdbstub_sstep_flags(void);
 %}
@@ -193,17 +265,17 @@ void main_loop_poll_add_notifier(Notifier *notify);
 
 #ifdef TARGET_NAME_ARM
     %include "hw/arm/boot.h"
-	%include "hw/arm/allwinner-a10.h"
-    %include "hw/timer/allwinner-a10-pit.h"
-    %include "hw/intc/allwinner-a10-pic.h"
-    %include "hw/net/allwinner_emac.h"
-    %include "hw/sd/allwinner-sdhost.h"
-    %include "hw/rtc/allwinner-rtc.h"
-    %include "hw/misc/allwinner-a10-ccm.h"
-    %include "hw/misc/allwinner-a10-dramc.h"
-    %include "hw/i2c/allwinner-i2c.h"
-    %include "hw/watchdog/allwinner-wdt.h"
-    %include "cpu-qom.h"
+    %import "hw/timer/allwinner-a10-pit.h"
+    %import "hw/intc/allwinner-a10-pic.h"
+    %import "hw/net/allwinner_emac.h"
+    %import "hw/sd/allwinner-sdhost.h"
+    %import "hw/rtc/allwinner-rtc.h"
+    %import "hw/misc/allwinner-a10-ccm.h"
+    %import "hw/misc/allwinner-a10-dramc.h"
+    %import "hw/i2c/allwinner-i2c.h"
+    %import "hw/watchdog/allwinner-wdt.h"
+    %include "hw/arm/allwinner-a10.h"
+    %import "cpu-qom.h"
     %include "cpu.h"
 #endif
 #pragma endregion Include files to wrap */
@@ -226,7 +298,7 @@ void main_loop_poll_add_notifier(Notifier *notify);
         int res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_MachineClass, 0 |  0 );
         struct MachineClass * arg1 = (struct MachineClass *)(argp1);
         arg1->init = &MachineClass_init_cb;
-        return Py_None;
+        return Py_BuildValue("");
     }
 %}
 
@@ -296,6 +368,7 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
     PTRCAST(ObjectClass)
     PTRCAST(CPUState)
     PTRCAST(CPUBreakpoint)
+    PTRCAST(ARMCPU)
 
     #ifdef TARGET_NAME_ARM
 	    //PTRCAST(AwA10State)
@@ -316,6 +389,39 @@ vaddr GetPC(CPUState *cpu) {
             return QTAILQPy(self.breakpoints, "entry")
          bplist = property(_getbplist, None)
         %}
+}
+#pragma endregion
+
+#pragma region Read/Write Registers
+%inline %{
+PyObject *ReadRegister(CPUState *cpu, int n) {
+
+    GByteArray *buf = g_byte_array_new ();
+    cpu->cc->gdb_read_register(cpu, &buf, n);
+    PyObject *b = PyBytes_FromStringAndSize(buf->data, buf->len);
+    g_byte_array_free(buf, TRUE);
+    return b;
+}
+void WriteRegister(CPUState *cpu, int n, uint8_t *buf) {
+    cpu->cc->gdb_write_register(cpu, buf, n);
+}
+%}
+%extend CPUState{
+    %pythoncode %{
+        pc = property( _pyboard.GetPC, None)
+
+        def _getbplist(self):
+            return QTAILQPy(self.breakpoints, "entry")
+        bplist = property(_getbplist, None)
+
+        def read_reg(self, n):
+            buf = ReadRegister(self, n)
+            return int.from_bytes(buf, "big" if target_words_bigendian() else "little")
+
+        def write_reg(self, n, val):
+            buf = ReadRegister(self, n)
+            return int.from_bytes(buf, "big" if target_words_bigendian() else "little")
+    %}
 }
 #pragma endregion
 #pragma endregion Additional helpers */

@@ -8,7 +8,16 @@ def state_changed(running, state):
     pass
 
 def mybp(cpu):
-    print(f"My Breakpoint, CPU: {cpu.cpu_index}")
+    print(f"My Breakpoint hit, CPU: {cpu.cpu_index}")
+
+    env = ToARMCPU(cpu).env
+    regs = env.regs
+
+    print(f"Register r0: {regs[0]}")
+    regs[0] = 0xdeadbeef   # Set r0 = 0xdeadbeef
+    
+    env.regs = regs # can only set all regs[16] at once!
+
 
 def pyboard_init(ms):
     print(f"Hello from pyboard_init: {ms}")
