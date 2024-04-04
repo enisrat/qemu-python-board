@@ -2,7 +2,8 @@
 # @TODO Only single target supported right now
 target = target_dirs[0]
 target_name = target.split('-')[0]
-target_inc = 'target' / target_name
+config_target = config_target_mak[target]
+target_inc = 'target' / config_target['TARGET_BASE_ARCH']
 
 # Need to process memory.h, because it uses "templated" includes (files ending with ".h.inc")
 memory_h_preprocess = custom_target(
