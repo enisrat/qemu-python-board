@@ -101,7 +101,7 @@
 #include "hw/registerfields.h"
 #include "hw/core/cpu.h"
 %}
-#ifdef TARGET_NAME_ARM
+#if defined TARGET_NAME_ARM || defined  TARGET_NAME_AARCH64
 	%{
     #include "hw/arm/boot.h"
 	#include "hw/arm/allwinner-a10.h"
@@ -235,7 +235,7 @@ GByteArray *g_byte_array_set_size (GByteArray *array, guint length);
 %}
 #pragma endregion
 
-#ifdef TARGET_NAME_ARM
+#if defined TARGET_NAME_ARM || defined  TARGET_NAME_AARCH64
     %include "hw/arm/boot.h"
     %import "hw/timer/allwinner-a10-pit.h"
     %import "hw/intc/allwinner-a10-pic.h"
@@ -379,12 +379,13 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
     PTRCAST(ObjectClass)
     PTRCAST(CPUState)
     PTRCAST(CPUBreakpoint)
-    PTRCAST(ARMCPU)
-
-    #ifdef TARGET_NAME_ARM
-	    //PTRCAST(AwA10State)
-    #endif
 %}
+#if defined TARGET_NAME_ARM || defined  TARGET_NAME_AARCH64
+%inline %{
+        PTRCAST(ARMCPU)
+	    //PTRCAST(AwA10State)
+%}
+#endif
 
 #pragma region GetPC function accessible from Python
 %inline %{
