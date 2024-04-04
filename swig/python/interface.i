@@ -14,8 +14,8 @@
     $1 = NULL;
 }
 
-/* ARM regs[16] */
-%typemap(in) uint32_t regs[ANY] (uint32_t temp[$1_dim0]) {
+/* e.g. direct access to ARM regs[16] or xregs[32] */
+%typemap(in) uint32_t [16] ($*1_ltype temp[$1_dim0]) {
   int i;
   if (!PySequence_Check($input)) {
     PyErr_SetString(PyExc_ValueError,"Expected a sequence");
@@ -28,7 +28,7 @@
   for (i = 0; i < $1_dim0; i++) {
     PyObject *o = PySequence_GetItem($input,i);
     if (PyNumber_Check(o)) {
-      temp[i] = (uint32_t) PyLong_AsLong(o);
+      temp[i] = ($*1_ltype) PyLong_AsLong(o);
     } else {
       PyErr_SetString(PyExc_ValueError,"Sequence elements must be numbers");      
       return NULL;
@@ -36,29 +36,7 @@
   }
   $1 = temp;
 }
-/* ARM xregs[32] */
-%typemap(in) uint64_t xregs[ANY] (uint64_t temp[$1_dim0]) {
-  int i;
-  if (!PySequence_Check($input)) {
-    PyErr_SetString(PyExc_ValueError,"Expected a sequence");
-    return NULL;
-  }
-  if (PySequence_Length($input) != $1_dim0) {
-    PyErr_SetString(PyExc_ValueError,"Size mismatch. Expected $1_dim0 elements");
-    return NULL;
-  }
-  for (i = 0; i < $1_dim0; i++) {
-    PyObject *o = PySequence_GetItem($input,i);
-    if (PyNumber_Check(o)) {
-      temp[i] = (uint64_t) PyLong_AsLong(o);
-    } else {
-      PyErr_SetString(PyExc_ValueError,"Sequence elements must be numbers");      
-      return NULL;
-    }
-  }
-  $1 = temp;
-}
-%typemap(out) uint32_t regs[ANY] {
+%typemap(out) uint32_t [16] {
  int i;
   $result = PyList_New($1_dim0);
   for (i = 0; i < $1_dim0; i++) {
@@ -66,14 +44,8 @@
     PyList_SetItem($result,i,o);
   }
 }
-%typemap(out) uint64_t xregs[ANY] {
- int i;
-  $result = PyList_New($1_dim0);
-  for (i = 0; i < $1_dim0; i++) {
-    PyObject *o = PyLong_FromUnsignedLong((unsigned long) $1[i]);
-    PyList_SetItem($result,i,o);
-  }
-}
+// add your hardcoded fixed array size here. In SWIG it is not possible to specify all hardcoded sizes and exclude [ANY] (which matches [])
+%apply uint32_t[16] { uint32_t[32], uint64_t[16], uint64_t[32] };
 
 #pragma endregion Typemap Mods */
 
@@ -287,7 +259,8 @@ GByteArray *g_byte_array_set_size (GByteArray *array, guint length);
 	static void MachineClass_init_cb(MachineState *ms) {
 		if(!MachineClass_init_cbpyfunc) return;
 		PyObject * pyobj = SWIG_NewPointerObj(SWIG_as_voidptr(ms), SWIGTYPE_p_MachineState,  0 );
-		Py_XDECREF( PyObject_CallFunction(MachineClass_init_cbpyfunc, "(O)", pyobj) ); 
+        PyObject *ret = PyObject_CallFunction(MachineClass_init_cbpyfunc, "(O)", pyobj);
+        if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret ); 
 	}
 %}
 %inline %{
@@ -313,7 +286,8 @@ GByteArray *g_byte_array_set_size (GByteArray *array, guint length);
 %{
 void vm_change_state_handler_cb(void *opaque, bool running, RunState state) {
     PyObject * pyfunc = (PyObject *)opaque;
-    Py_XDECREF( PyObject_CallFunction(pyfunc, "(OI)", running ? Py_True: Py_False, state) ); 
+    PyObject *ret = PyObject_CallFunction(pyfunc, "(OI)", running ? Py_True: Py_False, state); 
+    if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret ); 
 }
 %}
 %inline %{
@@ -325,7 +299,8 @@ void vm_change_state_handler_cb(void *opaque, bool running, RunState state) {
 %{
 static PyObject *pynotifier_cb;
 void main_loop_notifier_cb(Notifier *notifier, void *data) {
-    Py_XDECREF( PyObject_CallFunction(pynotifier_cb, "()") ); 
+    PyObject *ret = PyObject_CallFunction(pynotifier_cb, "()");
+    if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret );  
 }
 static Notifier pynotifier = {.notify = main_loop_notifier_cb};
 %}
@@ -345,6 +320,7 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
         PyObject *pyfunc = PyObject_GetAttrString(pyops, "read");
 
         PyObject *retpy = PyObject_CallFunction(pyfunc, "KK", addr, size);
+        if( retpy == NULL) PyErr_Print();
         uint64_t ret = PyLong_AsLong(retpy);
         Py_XDECREF(retpy);
 
@@ -354,7 +330,8 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
         PyObject *pyops = (PyObject *) opaque;
         PyObject *pyfunc = PyObject_GetAttrString(pyops, "write");
 
-        Py_XDECREF( PyObject_CallFunction(pyfunc, "KKK", addr, data, size) );        
+        PyObject *ret = PyObject_CallFunction(pyfunc, "KKK", addr, data, size);
+        if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret );        
     }
     void MemoryRegionOpsInitForPython(MemoryRegionOps *ops) {
         ops->read = MemoryRegionOpsReadCB;
@@ -414,10 +391,13 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
 vaddr GetPC(CPUState *cpu) {
     return cpu->cc->get_pc(cpu);
 }
+void SetPC(CPUState *cpu, vaddr addr) {
+    cpu->cc->set_pc(cpu, addr);
+}
 %}
 %extend CPUState{
       %pythoncode %{
-         pc = property( _pyboard.GetPC, None)
+         pc = property( _pyboard.GetPC, _pyboard.SetPC)
 
          def _getbplist(self):
             return QTAILQPy(self.breakpoints, "entry")
@@ -506,14 +486,14 @@ def BPStateChanged(running, state):
                 pc = cs.pc
                 if pc in AllBPs[cs.cpu_index]:
                     AllBPs[cs.cpu_index][pc](cs)
-                    #tb_flush(cs)
+                    tb_flush(cs)
                     if pc == cs.pc: # if we are still at the BP, single step (like GDB does)
-                        #print("SINGLESTEP")
+                        print("SINGLESTEP")
                         cpu_single_step(cs, (SSTEP_ENABLE | SSTEP_NOIRQ | SSTEP_NOTIMER) & accel_supported_gdbstub_sstep_flags())
             Resume = True
 
     except:
-        import traceback; traceback.print_exc()
+        pass
 
 qemu_add_vm_change_state_handler_py(BPStateChanged)
 
