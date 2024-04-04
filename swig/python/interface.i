@@ -100,6 +100,7 @@
 #include "hw/sd/sd.h"
 #include "hw/registerfields.h"
 #include "hw/core/cpu.h"
+#include "hw/sysbus.h"
 %}
 #if defined TARGET_NAME_ARM || defined  TARGET_NAME_AARCH64
 	%{
@@ -202,6 +203,7 @@
 %include "hw/sd/sd.h"
 %include "hw/registerfields.h"
 %include "hw/core/cpu.h"
+%include "hw/sysbus.h"
 
 //manual includes to wrap
 #pragma region gdbstub/internals.h
