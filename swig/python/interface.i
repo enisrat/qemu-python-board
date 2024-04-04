@@ -2,6 +2,7 @@
 %module pyboard
 
 %{
+#include "qemu/osdep.h"
 #include "qemu/coroutine-tls.h"
 #include "qom/object.h"
 #include "exec/cpu-common.h"
@@ -27,9 +28,18 @@
 #define G_NORETURN
 #define G_GNUC_PRINTF(a,b)
 #define __attribute__(x)
-//#define const
-//#define DECLARE_OBJ_CHECKERS(a,b,c,d)
-//#define DECLARE_INSTANCE_CHECKER(a,b,c)
+
+
+//ignore functions with va_list for now
+%ignore object_new_with_propv;
+%ignore object_set_propv;
+%ignore object_initialize_child_with_propsv;
+%ignore error_vprepend;
+%ignore error_vprintf;
+%ignore error_vreport;
+%ignore warn_vreport;
+%ignore info_vreport;
+
 
 
 %import "qemu/coroutine-tls.h"
