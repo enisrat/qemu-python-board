@@ -1,7 +1,14 @@
 from pyboard import *
+from traceback import print_exc
 import sys
 
 cubieboard_binfo = arm_boot_info()
+
+def state_changed(running, state):
+    pass
+
+def mybp(cpu):
+    print(f"My Breakpoint, CPU: {cpu.cpu_index}")
 
 def pyboard_init(ms):
     print(f"Hello from pyboard_init: {ms}")
@@ -18,8 +25,6 @@ def pyboard_init(ms):
         error_report("This board can only be used with cortex-a8 CPU")
         sys.exit(1)
 
-    #import pdb;pdb.set_trace()
-
     a10 = AW_A10(object_new("allwinner-a10"))
     object_property_add_child(ms, "soc", a10)
     object_unref(a10)
@@ -33,8 +38,6 @@ def pyboard_init(ms):
 
     qdev_realize(a10, 0, ERR)
     print("qdev_realize OK")
-
-    #import pdb; pdb.set_trace()
 
     #Connect AXP 209 */
     i2c = qdev_get_child_bus(a10.i2c0, "i2c")
@@ -71,6 +74,9 @@ def pyboard_init(ms):
 
     print("arm_load_kernel OK")
 
+    qemu_add_vm_change_state_handler_py(state_changed)
+
+    Breakpoint(CPUs[0], 0xc00ae2fc, mybp)
 
 
 def machine_init(mc):
