@@ -50,6 +50,7 @@ PyObject * load_python_script(void)
 
     if(!pModule){
         error_report("PyImport_Import on script %s failed. Check PYTHONPATH\n", pyboard_script);
+        PyErr_Print();
         exit(1);
     }
 
