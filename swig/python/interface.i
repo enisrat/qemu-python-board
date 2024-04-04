@@ -529,5 +529,28 @@ def main_loop_poll_notify():
 
 main_loop_poll_add_notifier_py(main_loop_poll_notify)
 #pragma endregion BREAKPOINT HANDLING
+#pragma region MemRegion Abstraction
+def RegisterIOMemRegionWithOps(namespace, base, size):
+    """
+    Use a @namespace to encapsule a memory region. It should look like this:
+
+    class ExampleMMIO():
+        mr = MemoryRegion()
+        mo = MemoryRegionOps()
+        obj = None
+        def read(addr, sz):
+            print(f"MyMemOps read {hex(addr)} {hex(sz)}")
+            return 0
+        def write(addr, data, sz):
+            print(f"MyMemOps write {hex(addr)} {hex(data)} {hex(sz)}")
+
+    Then use this function on the namespace (class) to register the read+write callbacks (class functions) in QEMU
+    """
+
+    namespace.obj = object_new("serial")  # Dummy object for now...
+    memory_region_init_io(namespace.mr, namespace.obj,
+                          namespace.mo, ToVoidPtr(namespace), namespace.__name__, size)
+    memory_region_add_subregion(get_system_memory(), base, namespace.mr)
+#pragma endregion
 %}
 #pragma endregion High Level Helpers */
