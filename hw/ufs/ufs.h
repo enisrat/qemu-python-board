@@ -91,7 +91,7 @@ typedef struct UfsHc {
     UfsLu *lus[UFS_MAX_LUS];
     UfsLu report_wlu;
     UfsLu dev_wlu;
-    UfsLu boot_wlu;
+    UfsLu *boot_wlu;
     UfsLu rpmb_wlu;
     DeviceDescriptor device_desc;
     GeometryDescriptor geometry_desc;

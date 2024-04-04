@@ -299,6 +299,9 @@ static bool ufs_add_lu(UfsHc *u, UfsLu *lu, Error **errp)
         return false;
     }
 
+    if( lu->lun == 31 ) { /* BOOT LUN*/
+        u->boot_wlu = lu;
+    }
     u->lus[lu->lun] = lu;
     u->device_desc.number_lu++;
     raw_dev_cap += (brdv_len >> UFS_GEOMETRY_CAPACITY_SHIFT);

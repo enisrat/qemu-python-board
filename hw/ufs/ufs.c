@@ -473,7 +473,7 @@ static UfsReqResult ufs_exec_scsi_cmd(UfsRequest *req)
         lu = &u->dev_wlu;
         break;
     case UFS_UPIU_BOOT_WLUN:
-        lu = &u->boot_wlu;
+        lu = u->boot_wlu;
         break;
     case UFS_UPIU_RPMB_WLUN:
         lu = &u->rpmb_wlu;
