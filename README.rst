@@ -19,9 +19,9 @@ Requirements
 Compilation
 ===========
 
-* Only compiles with ```--disable-werror```
+* Only compiles with ``--disable-werror``
 * At the moment only building x86_64 binary supported (due to hard coded ``DSWIGWORDSIZE64`` atm)
-
+* Right now only ONE target can be build
 
 Usage
 =====
