@@ -4,6 +4,16 @@ target = target_dirs[0]
 target_name = target.split('-')[0]
 target_inc = 'target' / target_name
 
+# Need to process memory.h, because it uses "templated" includes (files ending with ".h.inc")
+memory_h_preprocess = custom_target(
+    'memory_h_preprocess',
+    output: 'memory.h.processed.h',
+    input: '../../include/exec/memory.h',
+    capture: true,
+    feed: true,
+    command: [ 'python3', meson.current_source_dir() / 'replace_templated_headers.py', meson.global_source_root()+ '/include']
+)
+
 interface_wrap_c = custom_target(
     'interface_wrap.c',
     output : 'interface_wrap.c',
@@ -13,7 +23,9 @@ interface_wrap_c = custom_target(
                 '-DCONFIG_DEVICES=@0@-config-devices.h'.format(target), '-DTARGET_NAME_@0@'.format(target_name.to_upper()), 
                 '-I' + meson.global_source_root() + '/include', 
                 '-I' + meson.global_source_root() + '/' + target_inc, 
+                '-I' + meson.current_build_dir(), 
                 '@INPUT@' ],
+    depends: [memory_h_preprocess]
 )
 
 py_ss = ss.source_set()
