@@ -550,8 +550,8 @@ def main_loop_poll_notify():
             vm_start()
         elif ResumeHow == "Resume":
             ResumeHow = ""
-            vm_start()
             cvar.gdbserver_state.allow_stop_reply = GDBAllowStopOld
+            vm_start()
 
 main_loop_poll_add_notifier_py(main_loop_poll_notify)
 #pragma endregion BREAKPOINT HANDLING
