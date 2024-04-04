@@ -22,6 +22,12 @@
 #include "hw/qdev-properties.h"
 #include "block/block.h"
 %}
+#ifdef TARGET_NAME_ARM
+	%{
+	#include "hw/arm/allwinner-a10.h"
+	%}
+#endif
+
 
 
 #define G_GNUC_NULL_TERMINATED
@@ -52,7 +58,8 @@
 		PyObject * pyobj = SWIG_NewPointerObj(SWIG_as_voidptr(ms), SWIGTYPE_p_MachineState,  0 );
 		Py_XDECREF( PyObject_CallFunction(MachineClass_init_cbpyfunc, "(O)", pyobj) ); 
 	}
-	
+%}
+%inline %{
 	PyObject *MachineClass_init_set(PyObject *self, PyObject *cb) {
         MachineClass_init_cbpyfunc = cb;
         
@@ -63,7 +70,6 @@
         return Py_None;
     }
 %}
-PyObject *MachineClass_init_set(PyObject *self, PyObject *cb);
 %rename("_init",  regextarget=1, fullname=1) "MachineClass.*init";
 %extend MachineClass{
       %pythoncode %{
@@ -92,11 +98,36 @@ PyObject *MachineClass_init_set(PyObject *self, PyObject *cb);
 %include "hw/qdev-properties.h"
 %include "sysemu/blockdev.h"
 
+#ifdef TARGET_NAME_ARM
+	%include "hw/arm/allwinner-a10.h"
+#endif
 
-%wrapper {
+
+/* ######## Additional helpers */
+
+%{
     // for the very first "callback" into python world
     PyObject *MachineClass2Py(MachineClass *mc) {
         PyObject * resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(mc), SWIGTYPE_p_MachineClass, 0 |  0 );
         return resultobj;
     }
-}
+
+
+%}
+
+%inline %{
+    // get an unitialized **Error
+    PyObject *GetNullErrorPtr(void) {
+        Error **result = malloc(sizeof(Error *));
+        PyObject *resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_p_Error, 0 |  0 );
+        return resultobj;
+    };
+
+    //make pointer cast functions, e.g.: Object * ToObject(...)
+    //in C you would use explicit cast, in python you can't
+    #define PTRCAST(type) type * To##type( void *p) { return (type *) p; };
+
+    PTRCAST(Object)
+    PTRCAST(ObjectClass)
+%}
+/* ######## END Additional helpers */
