@@ -299,7 +299,11 @@ static bool ufs_add_lu(UfsHc *u, UfsLu *lu, Error **errp)
         return false;
     }
 
-    if( lu->lun == 31 ) { /* BOOT LUN*/
+    if( lu->lun == 7 ) { /* BOOT LUN config*/
+        lu->unit_desc.boot_lun_id = 1;
+        lu->unit_desc.lu_enable = 1;
+        u->device_desc.boot_enable = 1;
+        u->attributes.boot_lun_en = 1;
         u->boot_wlu = lu;
     }
     u->lus[lu->lun] = lu;

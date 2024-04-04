@@ -322,6 +322,29 @@ static void ufs_process_uiccmd(UfsHc *u, uint32_t val)
         u->reg.hcs = FIELD_DP32(u->reg.hcs, HCS, UPMCRS, UFS_PWR_LOCAL);
         u->reg.ucmdarg2 = UFS_UIC_CMD_RESULT_SUCCESS;
         break;
+    case UFS_UIC_CMD_DME_GET:
+        switch (u->reg.ucmdarg1) {
+            case 0x410000:
+                //TX_FSM_State
+                u->reg.ucmdarg3 = 1;
+                break;
+            default:
+                break;
+        }
+        
+        u->reg.ucmdarg2 = UFS_UIC_CMD_RESULT_SUCCESS;
+        break;
+    case UFS_UIC_CMD_DME_SET:
+        switch (u->reg.ucmdarg1) {
+            case 0x15710000: //PA_PWRMode
+                u->reg.is = FIELD_DP32(u->reg.is, IS, UPMS, 1);
+                break;
+            default:
+                break;
+        }
+        
+        u->reg.ucmdarg2 = UFS_UIC_CMD_RESULT_SUCCESS;
+        break;
     default:
         u->reg.ucmdarg2 = UFS_UIC_CMD_RESULT_SUCCESS;
     }
@@ -743,8 +766,10 @@ static QueryRespCode ufs_exec_query_attr(UfsRequest *req, int op)
     uint32_t value;
     QueryRespCode ret;
 
+    qemu_log("ufs_exec_query_attr idn %d op %d\n", idn, op);
     ret = ufs_attr_check_idn_valid(idn, op);
     if (ret) {
+        qemu_log("ufs_attr_check_idn_valid!\n");
         return ret;
     }
 
@@ -874,6 +899,52 @@ static inline InterconnectDescriptor interconnect_desc(void)
     return desc;
 }
 
+static inline ufs_query_configuration(UfsRequest *req) {
+    /*
+        //Device Desc:
+    typedef struct {
+        uint8_t        bLength;
+        uint8_t        bDescriptorType;
+        uint8_t        bBootEnable;
+        uint8_t        bDescrAccessEn;
+        uint8_t        bInitPowerMode;
+        uint8_t        bHighPriorityLUN;
+        uint8_t        bSecureRemovalType;
+        uint8_t        bInitActiveICCLevel;
+        uint16_t       wPeriodicRTCUpdate;
+        } ufs_desc_config_device_t;
+        REDFIN: Length 0x16
+    */
+   /*
+   // JESD220B Table 14.8 - Config Unit Desc. Params
+typedef struct {
+   uint8_t        bLUEnable;
+   uint8_t        bBootLunID;
+   uint8_t        bLUWriteProtect;
+   uint8_t        bMemoryType;
+   uint32_t       dNumAllocUnits;
+   uint8_t        bDataReliability;
+   uint8_t        bLogicalBlockSize;
+   uint8_t        bProvisioningType;
+   uint16_t       wContextCapabilities;
+} ufs_desc_config_unit_t;
+    REDFIN: Length 0x1A
+*/
+
+    unsigned char conf[230] = {/*dev config desc*/230,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0  
+                                /*unit conf desc 0*/,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                /*unit conf desc 1*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                /*unit conf desc 2*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                /*unit conf desc 3*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                /*unit conf desc 4*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                /*unit conf desc 5*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                /*unit conf desc 6*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                                /*unit conf desc 7*/,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0    //BOOT_WLUN
+                                };
+
+    memcpy(&req->rsp_upiu.qr.data, conf, 230 );
+}
+
 static QueryRespCode ufs_read_desc(UfsRequest *req)
 {
     UfsHc *u = req->hc;
@@ -881,6 +952,8 @@ static QueryRespCode ufs_read_desc(UfsRequest *req)
     uint8_t idn = req->req_upiu.qr.idn;
     uint16_t length = be16_to_cpu(req->req_upiu.qr.length);
     InterconnectDescriptor desc;
+
+    qemu_log("ufs_read_desc idn %d length %d\n", idn, length);
 
     switch (idn) {
     case UFS_QUERY_DESC_IDN_DEVICE:
@@ -918,6 +991,11 @@ static QueryRespCode ufs_read_desc(UfsRequest *req)
         req->rsp_upiu.qr.data[1] = UFS_QUERY_DESC_IDN_HEALTH;
         status = UFS_QUERY_RESULT_SUCCESS;
         break;
+    case UFS_QUERY_DESC_IDN_CONFIGURATION:
+        ufs_query_configuration(req);
+
+        status = UFS_QUERY_RESULT_SUCCESS;
+        break;   
     default:
         length = 0;
         trace_ufs_err_query_invalid_idn(req->req_upiu.qr.opcode, idn);
@@ -1000,6 +1078,7 @@ static UfsReqResult ufs_exec_query_cmd(UfsRequest *req)
     QueryRespCode status;
 
     trace_ufs_exec_query_cmd(req->slot, req->req_upiu.qr.opcode);
+    qemu_log("ufs_exec_query_cmd slot %d opcode %d func %d\n", req->slot, req->req_upiu.qr.opcode, query_func);
     if (query_func == UFS_UPIU_QUERY_FUNC_STANDARD_READ_REQUEST) {
         status = ufs_exec_query_read(req);
     } else if (query_func == UFS_UPIU_QUERY_FUNC_STANDARD_WRITE_REQUEST) {
@@ -1012,6 +1091,7 @@ static UfsReqResult ufs_exec_query_cmd(UfsRequest *req)
     ufs_build_upiu_header(req, UFS_UPIU_TRANSACTION_QUERY_RSP, 0, status, 0,
                           data_segment_length);
 
+    req->rsp_upiu.qr.opcode = req->req_upiu.qr.opcode;
     if (status != UFS_QUERY_RESULT_SUCCESS) {
         return UFS_REQUEST_FAIL;
     }
@@ -1268,7 +1348,7 @@ static void ufs_realize(DeviceState *pci_dev, Error **errp)
 
     ufs_init_wlu(&u->report_wlu, UFS_UPIU_REPORT_LUNS_WLUN);
     ufs_init_wlu(&u->dev_wlu, UFS_UPIU_UFS_DEVICE_WLUN);
-    ufs_init_wlu(&u->boot_wlu, UFS_UPIU_BOOT_WLUN);
+    //ufs_init_wlu(&u->boot_wlu, UFS_UPIU_BOOT_WLUN);
     ufs_init_wlu(&u->rpmb_wlu, UFS_UPIU_RPMB_WLUN);
 
     memory_region_init_io(&u->iomem, OBJECT(u), &ufs_mmio_ops, u, "ufs",
