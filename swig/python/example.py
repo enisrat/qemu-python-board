@@ -20,24 +20,16 @@ def mybp(cpu):
     env.regs = regs # can only set all regs[16] at once!
 
 
-# This will be a Memory mapped IO device
+# This will be an arbitrary Memory mapped IO device
 class MyMemIO():
+    mr = MemoryRegion()
+    mo = MemoryRegionOps()
+    obj = None
     def read(addr, sz):
         print(f"MyMemOps read {hex(addr)} {hex(sz)}")
         return 0
     def write(addr, data, sz):
         print(f"MyMemOps write {hex(addr)} {hex(data)} {hex(sz)}")
-    mr = MemoryRegion()
-    mo = MemoryRegionOps()
-
-
-def initMyMemRegion():
-    obj = object_new("serial")  # Dummy object for now...
-
-    memory_region_init_io(MyMemIO.mr, obj,
-                          MyMemIO.mo, ToVoidPtr(MyMemIO), "pythonMemRegion", 0x1000)
-
-    memory_region_add_subregion(get_system_memory(), 0xab00000, MyMemIO.mr)
 
 
 def pyboard_init(ms):
@@ -109,7 +101,7 @@ def pyboard_init(ms):
 
         Breakpoint(CPUs[0], 0xc00ae2fc, mybp)
 
-        initMyMemRegion()
+        RegisterIOMemRegionWithOps(MyMemIO, 0xabc00000, 0x1000)
 
     except:
         print_exc()
