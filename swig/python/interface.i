@@ -28,7 +28,7 @@
   for (i = 0; i < $1_dim0; i++) {
     PyObject *o = PySequence_GetItem($input,i);
     if (PyNumber_Check(o)) {
-      temp[i] = ($*1_ltype) PyLong_AsLong(o);
+      temp[i] = ($*1_ltype) PyLong_AsUnsignedLong(o);
     } else {
       PyErr_SetString(PyExc_ValueError,"Sequence elements must be numbers");      
       return NULL;
