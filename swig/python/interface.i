@@ -1,7 +1,7 @@
 
 %module pyboard
 
-/* ######## START Typemap Mods */
+#pragma region Typemap Mods */
 
 /* This is a CHEAT. SWIG does not understand QEMU "qom" Object inheritance. So we deactivate any runtime type checks on pointers here, for very simple python code.
  * @ToDo: Make type safe
@@ -13,8 +13,9 @@
   else
     $1 = NULL;
 }
-/* ######## END Typemap Mods */
+#pragma endregion Typemap Mods */
 
+#pragma region Header Includes
 %{
 #include <stdbool.h>
 //qemu
@@ -35,6 +36,7 @@
 //qapi
 #include "qapi/error.h"
 #include "qapi/qapi-types-common.h"
+#include "qapi/qapi-types-run-state.h"
 //exec
 #include "exec/cpu-common.h"
 #include "exec/cpu-defs.h"
@@ -44,6 +46,7 @@
 #include "exec/ramlist.h"
 #include "exec/memory.h"
 #include "exec/address-spaces.h"
+#include "exec/tb-flush.h"
 //block
 #include "block/block.h"
 #include "block/block-common.h"
@@ -51,6 +54,8 @@
 //sysemu
 #include "sysemu/blockdev.h"
 #include "sysemu/block-backend-io.h"
+#include "sysemu/runstate.h"
+#include "sysemu/cpus.h"
 //hw
 #include "hw/boards.h"
 #include "hw/qdev-properties.h"
@@ -62,9 +67,6 @@
 #include "hw/registerfields.h"
 #include "hw/core/cpu.h"
 %}
-
-
-
 #ifdef TARGET_NAME_ARM
 	%{
     #include "hw/arm/boot.h"
@@ -82,10 +84,9 @@
     #include "cpu.h"
 	%}
 #endif
+#pragma endregion Header Includes
 
-
-
-// some macro removals
+#pragma region some macro removals
 #define G_GNUC_WARN_UNUSED_RESULT
 #define G_GNUC_NULL_TERMINATED
 #define G_GNUC_UNUSED
@@ -95,8 +96,10 @@
 #define __attribute__(x)
 #define _Static_assert(a,b)
 #define __thread
+#pragma endregion
 
-//ignore functions with va_list for now
+#pragma region Renames and Ignores
+#pragma region ignore functions with va_list for now
 %ignore object_new_with_propv;
 %ignore object_set_propv;
 %ignore object_initialize_child_with_propsv;
@@ -105,47 +108,17 @@
 %ignore error_vreport;
 %ignore warn_vreport;
 %ignore info_vreport;
-
-
-/* ######## START Callback translate functions */
-
-%{ static PyObject *MachineClass_init_cbpyfunc = NULL; 
-	static void MachineClass_init_cb(MachineState *ms) {
-		if(!MachineClass_init_cbpyfunc) return;
-		PyObject * pyobj = SWIG_NewPointerObj(SWIG_as_voidptr(ms), SWIGTYPE_p_MachineState,  0 );
-		Py_XDECREF( PyObject_CallFunction(MachineClass_init_cbpyfunc, "(O)", pyobj) ); 
-	}
-%}
-%inline %{
-	PyObject *MachineClass_init_set(PyObject *self, PyObject *cb) {
-        MachineClass_init_cbpyfunc = cb;
-        
-        void *argp1;
-        int res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_MachineClass, 0 |  0 );
-        struct MachineClass * arg1 = (struct MachineClass *)(argp1);
-        arg1->init = &MachineClass_init_cb;
-        return Py_None;
-    }
-%}
-%rename("_init",  regextarget=1, fullname=1) "MachineClass.*init";
-%extend MachineClass{
-      %pythoncode %{
-         init = property(None, _pyboard.MachineClass_init_set)
-      %}
-}
-/* ######## END Callback translate functions */
-
-
-/* ######## START Miscellaneous fixes */
+#pragma endregion
 
 //fix "property" members in structs --> rename "_property"
 %rename("_%s",  "match$ismember"="1") "property";   //swig bug, property is a python keyword
 %rename("$ignore",  regextarget=1, fullname=1) "CPUState.*jmp_env"; // does not work because it is of typedef ... x[1]
 %ignore pred_esz_masks;
-/* ######## END Miscellaneous fixes */
 
+%rename("$ignore",  regextarget=1, fullname=1) "MachineClass.*init";
+#pragma endregion Renames and Ignores
 
-/* ######## START Include files to wrap */
+#pragma region Include files to wrap */
 %include <stdint.i>
 //qemu
 %import "qemu/compiler.h"
@@ -166,6 +139,7 @@
 //qapi
 %include "qapi/error.h"
 %include "qapi/qapi-types-common.h"
+%include "qapi/qapi-types-run-state.h"
 //exec
 %include "exec/cpu-common.h"
 %include "exec/hwaddr.h"
@@ -174,6 +148,7 @@
 %include "exec/ramlist.h"
 %include "memory.h.processed.h" // for "exec/memory.h"
 %include "exec/address-spaces.h"
+%include "exec/tb-flush.h"
 //block
 %include "block/block.h"
 %include "block/block-common.h"
@@ -181,6 +156,8 @@
 //sysemu
 %include "sysemu/blockdev.h"
 %include "sysemu/block-backend-io.h"
+%include "sysemu/runstate.h"
+%include "sysemu/cpus.h"
 //hw
 %include "hw/boards.h"
 %include "hw/qdev-properties.h"
@@ -191,6 +168,28 @@
 %include "hw/sd/sd.h"
 %include "hw/registerfields.h"
 %include "hw/core/cpu.h"
+
+//manual includes to wrap
+#pragma region gdbstub/internals.h
+// If we want to set Breakpoints of Type BP_GDB, we need to initialize the GDB stub (a little bit),
+// otherwise we get SEGFAULTs
+%inline %{
+    typedef struct GDBState { bool init; } GDBState;
+    extern GDBState gdbserver_state;
+    void gdb_init_gdbserver_state(void);
+    void gdb_create_default_process(GDBState *s);
+%}
+#pragma endregion
+#pragma region qemu/main-loop.h
+%inline %{
+void main_loop_poll_add_notifier(Notifier *notify);
+%}
+#pragma endregion
+#pragma region qemu/accel.h
+%inline %{
+    int accel_supported_gdbstub_sstep_flags(void);
+%}
+#pragma endregion
 
 #ifdef TARGET_NAME_ARM
     %include "hw/arm/boot.h"
@@ -207,9 +206,68 @@
     %include "cpu-qom.h"
     %include "cpu.h"
 #endif
-/* ######## END Include files to wrap */
+#pragma endregion Include files to wrap */
 
-/* ######## START Additional helpers */
+#pragma region Callback translate functions */
+
+    #pragma region MachineClass
+%{ static PyObject *MachineClass_init_cbpyfunc = NULL; 
+	static void MachineClass_init_cb(MachineState *ms) {
+		if(!MachineClass_init_cbpyfunc) return;
+		PyObject * pyobj = SWIG_NewPointerObj(SWIG_as_voidptr(ms), SWIGTYPE_p_MachineState,  0 );
+		Py_XDECREF( PyObject_CallFunction(MachineClass_init_cbpyfunc, "(O)", pyobj) ); 
+	}
+%}
+%inline %{
+	PyObject *MachineClassInitSet(PyObject *self, PyObject *cb) {
+        MachineClass_init_cbpyfunc = cb;
+        
+        void *argp1;
+        int res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_MachineClass, 0 |  0 );
+        struct MachineClass * arg1 = (struct MachineClass *)(argp1);
+        arg1->init = &MachineClass_init_cb;
+        return Py_None;
+    }
+%}
+
+%extend MachineClass{
+      %pythoncode %{
+         init = property(None, _pyboard.MachineClassInitSet)
+      %}
+}
+    #pragma endregion
+
+    #pragma region STATE CHANGE (Breakpoints)
+%{
+void vm_change_state_handler_cb(void *opaque, bool running, RunState state) {
+    PyObject * pyfunc = (PyObject *)opaque;
+    Py_XDECREF( PyObject_CallFunction(pyfunc, "(OI)", running ? Py_True: Py_False, state) ); 
+}
+%}
+%inline %{
+    void qemu_add_vm_change_state_handler_py(PyObject *cb) {
+        qemu_add_vm_change_state_handler(vm_change_state_handler_cb, cb);
+    }
+%}
+//MAIN LOOP RETURN CALLBACK (from main-loop.h)
+%{
+static PyObject *pynotifier_cb;
+void main_loop_notifier_cb(Notifier *notifier, void *data) {
+    Py_XDECREF( PyObject_CallFunction(pynotifier_cb, "()") ); 
+}
+static Notifier pynotifier = {.notify = main_loop_notifier_cb};
+%}
+%inline %{
+void main_loop_poll_add_notifier_py(PyObject *cb) {
+    pynotifier_cb = cb;
+    main_loop_poll_add_notifier(&pynotifier);
+}
+%}
+    #pragma endregion
+
+#pragma endregion Callback translate functions */
+
+#pragma region Additional helpers */
 
 %{
     // for the very first "callback" into python world
@@ -217,8 +275,6 @@
         PyObject * resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(mc), SWIGTYPE_p_MachineClass, 0 |  0 );
         return resultobj;
     }
-
-
 %}
 
 %inline %{
@@ -231,21 +287,71 @@
         return *err;
     };
 
-    //make pointer cast functions, e.g.: Object * ToObject(...)
-    //in C you would use explicit cast, in python you can't
-    #define PTRCAST_NAME(type,funcname) type * funcname( void *p) { return (type *) p; };
-    #define PTRCAST(type) PTRCAST(type, To##type);
 
-    PTRCAST_NAME(Object, OBJ)
-    PTRCAST_NAME(ObjectClass, CLASS)
+    //make pointer cast functions, e.g.: Object * ToObject(...)
+    //in C you would use explicit cast, in python you can't!
+    #define PTRCAST_NAME(type,funcname) type * funcname( void *p) { return (type *) p; };
+    #define PTRCAST(type) PTRCAST_NAME(type, To##type);
+    PTRCAST(Object)
+    PTRCAST(ObjectClass)
+    PTRCAST(CPUState)
+    PTRCAST(CPUBreakpoint)
 
     #ifdef TARGET_NAME_ARM
 	    //PTRCAST(AwA10State)
     #endif
 %}
-/* ######## END Additional helpers */
 
-/* ######## START High Level Helpers */
+#pragma region GetPC function accessible from Python
+%inline %{
+vaddr GetPC(CPUState *cpu) {
+    return cpu->cc->get_pc(cpu);
+}
+%}
+%extend CPUState{
+      %pythoncode %{
+         pc = property( _pyboard.GetPC, None)
+
+         def _getbplist(self):
+            return QTAILQPy(self.breakpoints, "entry")
+         bplist = property(_getbplist, None)
+        %}
+}
+#pragma endregion
+#pragma endregion Additional helpers */
+
+
+#pragma region High Level Helpers in PYTHON */
+
+#pragma region wrapping QTAILQ
+%pythonbegin %{
+class QTAILQPy():
+    def __init__(self, head, entry):
+        self._h = head
+        self.entry = entry
+    def __getitem__(self, i):
+        try:
+            e = self._h.tqh_first
+            while i>0:
+                e = getattr(e, self.entry).tqe_next
+                i -=1
+        except:
+            raise IndexError()
+            return None
+        if not e:
+            raise IndexError()
+            return None
+        return e
+
+    def __len__(self):
+        i = 0
+        e = self._h.tqh_first
+        while e:
+            i += 1
+            e = getattr(e, self.entry).tqe_next
+        return i
+%}
+#pragma endregion
 %pythoncode %{
 ERR = _GetNullErrorPtr()
 def CHECK_ERR():
@@ -254,5 +360,67 @@ def CHECK_ERR():
         return error_get_pretty(e)
     else:
         return None
+
+
+#CPU access list
+CPUs = QTAILQPy(cvar.cpus_queue, "node")
+
+#pragma region BREAKPOINT HANDLING
+AllBPs = {}
+
+def GDBstubInit():
+#we need to init gdserver stub to be ableto use BP_GDB breakpoints
+    if not cvar.gdbserver_state.init:
+        gdb_init_gdbserver_state()
+        gdb_create_default_process(cvar.gdbserver_state)
+
+def Breakpoint(cpu, addr, cb):
+    GDBstubInit()
+    cpu_breakpoint_insert(cpu, addr, BP_GDB, None)
+    if cpu.cpu_index not in AllBPs:
+        AllBPs[cpu.cpu_index] = {}
+    AllBPs[cpu.cpu_index][addr] = cb
+
+def DelBreakpoint(cpu, addr):
+    try:
+        del AllBPs[cpu.cpu_index][addr]
+    except:
+        pass
+
+
+Resume = False
+def BPStateChanged(running, state):
+    global Resume
+    try:
+        #import pdb; pdb.set_trace()
+        if state == RUN_STATE_DEBUG:
+            for cs in CPUs:
+                cpu_single_step(cs, 0)
+                pc = cs.pc
+                if pc in AllBPs[cs.cpu_index]:
+                    AllBPs[cs.cpu_index][pc](cs)
+                    #tb_flush(cs)
+                    if pc == cs.pc: # if we are still at the BP, single step (like GDB does)
+                        #print("SINGLESTEP")
+                        cpu_single_step(cs, (SSTEP_ENABLE | SSTEP_NOIRQ | SSTEP_NOTIMER) & accel_supported_gdbstub_sstep_flags())
+            Resume = True
+
+    except:
+        import traceback; traceback.print_exc()
+
+qemu_add_vm_change_state_handler_py(BPStateChanged)
+
+MainLoopCtr = 0
+def main_loop_poll_notify():
+    global MainLoopCtr, Resume
+    #print(f"MAIN LOOP NOTIFIED ME {MainLoopCtr}")
+    MainLoopCtr += 1
+    if Resume:
+        Resume = False
+        #print("Resuming")
+        vm_start()
+
+main_loop_poll_add_notifier_py(main_loop_poll_notify)
+#pragma endregion BREAKPOINT HANDLING
 %}
-/* ######## END High Level Helpers */
+#pragma endregion High Level Helpers */
