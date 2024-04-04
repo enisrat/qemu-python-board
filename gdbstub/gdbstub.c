@@ -992,7 +992,7 @@ static void handle_detach(GArray *params, void *user_ctx)
     }
 
     process = gdb_get_process(pid);
-    gdb_process_breakpoint_remove_all(process);
+    //gdb_process_breakpoint_remove_all(process);
     process->attached = false;
 
     if (pid == gdb_get_cpu_pid(gdbserver_state.c_cpu)) {
@@ -1864,7 +1864,7 @@ static void handle_target_halt(GArray *params, void *user_ctx)
      * because gdb is doing an initial connect and the state
      * should be cleaned up.
      */
-    gdb_breakpoint_remove_all(gdbserver_state.c_cpu);
+    //gdb_breakpoint_remove_all(gdbserver_state.c_cpu);
 }
 
 static int gdb_handle_packet(const char *line_buf)
