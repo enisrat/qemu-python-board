@@ -210,7 +210,30 @@
  * Alternatively, QEMU source needs to be patched to check gdbserver_state.init flag
 */
 %inline %{
-    typedef struct GDBState { bool init; } GDBState;
+    // copied from gdbstub/internals.h
+    #define MAX_PACKET_LENGTH 4096
+    typedef void GDBProcess;
+    typedef struct GDBState {
+    bool init;       /* have we been initialised? */
+    CPUState *c_cpu; /* current CPU for step/continue ops */
+    CPUState *g_cpu; /* current CPU for other ops */
+    CPUState *query_cpu; /* for q{f|s}ThreadInfo */
+    int state; /* parsing state */
+    char line_buf[MAX_PACKET_LENGTH];
+    int line_buf_index;
+    int line_sum; /* running checksum */
+    int line_csum; /* checksum at the end of the packet */
+    GByteArray *last_packet;
+    int signal;
+    bool multiprocess;
+    GDBProcess *processes;
+    int process_num;
+    GString *str_buf;
+    GByteArray *mem_buf;
+    int sstep_flags;
+    int supported_sstep_flags;
+    bool allow_stop_reply;
+} GDBState;
     extern GDBState gdbserver_state;
     void gdb_init_gdbserver_state(void);
     void gdb_create_default_process(GDBState *s);
@@ -293,8 +316,8 @@ void vm_change_state_handler_cb(void *opaque, bool running, RunState state) {
 }
 %}
 %inline %{
-    void qemu_add_vm_change_state_handler_py(PyObject *cb) {
-        qemu_add_vm_change_state_handler(vm_change_state_handler_cb, cb);
+    void qemu_add_vm_change_state_handler_prio_py(PyObject *cb, int prio) {
+        qemu_add_vm_change_state_handler_prio(vm_change_state_handler_cb, cb, prio);
     }
 %}
 //MAIN LOOP RETURN CALLBACK (from main-loop.h)
@@ -487,50 +510,61 @@ def DelBreakpoint(cpu, addr):
         pass
 
 
-Resume = False
+ResumeHow = ""
 def BPStateChanged(running, state):
-    global Resume
-    try:
-        #import pdb; pdb.set_trace()
-        if state == RUN_STATE_DEBUG:
-            print("DEBUG")
-            for cs in CPUs:
-                pc = cs.pc
-                if pc in AllBPs[cs.cpu_index]:
-                    cpu_single_step(cs, 0)
-                    AllBPs[cs.cpu_index][pc](cs)
-                    tb_flush(cs)
-                    if pc == cs.pc: # if we are still at the BP, single step (like GDB does)
-                        #print("SINGLESTEP")
-                        cpu_single_step(cs, (SSTEP_ENABLE | SSTEP_NOIRQ | SSTEP_NOTIMER) & accel_supported_gdbstub_sstep_flags())
-                    Resume = True
-
-    except:
+    global ResumeHow, GDBAllowStopOld
+    if False:
+        print(f"State Changed: {state} pc: {CPUs[0].pc} resume: {ResumeHow}")
+    if state == RUN_STATE_PAUSED:
         pass
+    if state == RUN_STATE_DEBUG:
+        if ResumeHow == "Waitafterstep":
+            for cs in CPUs:
+                cpu_single_step(cs, 0)
+            ResumeHow = "Resume"
+        for cs in CPUs:
+            pc = cs.pc
+            if pc in AllBPs[cs.cpu_index]:
+                GDBAllowStopOld = cvar.gdbserver_state.allow_stop_reply    
+                cvar.gdbserver_state.allow_stop_reply = False # This is a hack to prevent OUR Breakpoint from being passed to attached GDB client
+                AllBPs[cs.cpu_index][pc](cs)
+                tb_flush(cs)
+                if pc == cs.pc: # if we are still at the BP, single step (like GDB does)
+                    cpu_single_step(cs, (SSTEP_ENABLE | SSTEP_NOIRQ | SSTEP_NOTIMER) & accel_supported_gdbstub_sstep_flags())
+                    ResumeHow = "Singlestep"
+                else:
+                    ResumeHow = "Resume"
 
-qemu_add_vm_change_state_handler_py(BPStateChanged)
+
+qemu_add_vm_change_state_handler_prio_py(BPStateChanged, 100)
 
 MainLoopCtr = 0
 def main_loop_poll_notify():
-    global MainLoopCtr, Resume
-    #print(f"MAIN LOOP NOTIFIED ME {MainLoopCtr}")
+    global MainLoopCtr, ResumeHow
     MainLoopCtr += 1
-    if Resume:
-        Resume = False
-        #print("Resuming")
-        vm_start()
+    if ResumeHow:
+        if False:
+            print(f"Resuming: {ResumeHow}")
+        if ResumeHow == "Singlestep":   # gdbserver_state should stay inactive while WE step
+            ResumeHow = "Waitafterstep"
+            vm_start()
+        elif ResumeHow == "Resume":
+            ResumeHow = ""
+            vm_start()
+            cvar.gdbserver_state.allow_stop_reply = GDBAllowStopOld
 
 main_loop_poll_add_notifier_py(main_loop_poll_notify)
 #pragma endregion BREAKPOINT HANDLING
 #pragma region MemRegion Abstraction
-def RegisterIOMemRegionWithOps(namespace, base, size):
+def RegisterIOMemRegionWithOps(namespace, base=None, size=None, obj=None):
     """
     Use a @namespace to encapsule a memory region. It should look like this:
 
     class ExampleMMIO():
         mr = MemoryRegion()
         mo = MemoryRegionOps()
-        obj = None
+        size = 0x4000 #Optional
+        base = 0xa1800000 #Optional
         def read(addr, sz):
             print(f"MyMemOps read {hex(addr)} {hex(sz)}")
             return 0
@@ -538,10 +572,15 @@ def RegisterIOMemRegionWithOps(namespace, base, size):
             print(f"MyMemOps write {hex(addr)} {hex(data)} {hex(sz)}")
 
     Then use this function on the namespace (class) to register the read+write callbacks (class functions) in QEMU
+
+    @obj is an optional qom Object (owner) for ref counting
     """
 
-    namespace.obj = object_new("serial")  # Dummy object for now...
-    memory_region_init_io(namespace.mr, namespace.obj,
+    if not base:
+        base = namespace.base
+    if not size:
+        size = namespace.size
+    memory_region_init_io(namespace.mr, obj,
                           namespace.mo, ToVoidPtr(namespace), namespace.__name__, size)
     memory_region_add_subregion(get_system_memory(), base, namespace.mr)
 
