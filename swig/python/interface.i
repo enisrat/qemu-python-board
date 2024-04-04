@@ -337,6 +337,36 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
 %}
     #pragma endregion
 
+    #pragma region MemoryRegionOps Callbacks
+    
+    %inline %{
+    uint64_t MemoryRegionOpsReadCB(void *opaque, hwaddr addr, unsigned size) {
+        PyObject *pyops = (PyObject *) opaque;
+        PyObject *pyfunc = PyObject_GetAttrString(pyops, "read");
+
+        PyObject *retpy = PyObject_CallFunction(pyfunc, "KK", addr, size);
+        uint64_t ret = PyLong_FromUnsignedLong(retpy);
+        Py_XDECREF(retpy);
+
+        return ret;        
+    }
+    void MemoryRegionOpsWriteCB(void *opaque, hwaddr addr, uint64_t data, unsigned size) {
+        PyObject *pyops = (PyObject *) opaque;
+        PyObject *pyfunc = PyObject_GetAttrString(pyops, "write");
+
+        Py_XDECREF( PyObject_CallFunction(pyfunc, "KKK", addr, data, size) );        
+    }
+    void MemoryRegionOpsInitForPython(MemoryRegionOps *ops) {
+        ops->read = MemoryRegionOpsReadCB;
+        ops->write = MemoryRegionOpsWriteCB;
+    }
+    %}
+    %feature("pythonappend") MemoryRegionOps::MemoryRegionOps() %{
+        MemoryRegionOpsInitForPython(self)
+    %}
+
+    #pragma endregion
+
 #pragma endregion Callback translate functions */
 
 #pragma region Additional helpers */
@@ -359,6 +389,10 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
         return *err;
     };
 
+    // Convert PyObject* to "SWIG type void*" to pass around in "opaque" void * args
+    void *ToVoidPtr(PyObject *o) {
+        return (void *)o;
+    }
 
     //make pointer cast functions, e.g.: Object * ToObject(...)
     //in C you would use explicit cast, in python you can't!
@@ -389,39 +423,6 @@ vaddr GetPC(CPUState *cpu) {
             return QTAILQPy(self.breakpoints, "entry")
          bplist = property(_getbplist, None)
         %}
-}
-#pragma endregion
-
-#pragma region Read/Write Registers
-%inline %{
-PyObject *ReadRegister(CPUState *cpu, int n) {
-
-    GByteArray *buf = g_byte_array_new ();
-    cpu->cc->gdb_read_register(cpu, &buf, n);
-    PyObject *b = PyBytes_FromStringAndSize(buf->data, buf->len);
-    g_byte_array_free(buf, TRUE);
-    return b;
-}
-void WriteRegister(CPUState *cpu, int n, uint8_t *buf) {
-    cpu->cc->gdb_write_register(cpu, buf, n);
-}
-%}
-%extend CPUState{
-    %pythoncode %{
-        pc = property( _pyboard.GetPC, None)
-
-        def _getbplist(self):
-            return QTAILQPy(self.breakpoints, "entry")
-        bplist = property(_getbplist, None)
-
-        def read_reg(self, n):
-            buf = ReadRegister(self, n)
-            return int.from_bytes(buf, "big" if target_words_bigendian() else "little")
-
-        def write_reg(self, n, val):
-            buf = ReadRegister(self, n)
-            return int.from_bytes(buf, "big" if target_words_bigendian() else "little")
-    %}
 }
 #pragma endregion
 #pragma endregion Additional helpers */
