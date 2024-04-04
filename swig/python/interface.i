@@ -205,8 +205,10 @@
 
 //manual includes to wrap
 #pragma region gdbstub/internals.h
-// If we want to set Breakpoints of Type BP_GDB, we need to initialize the GDB stub (a little bit),
-// otherwise we get SEGFAULTs
+/* If we want to set Breakpoints of Type BP_GDB, we need to initialize the GDB stub,
+ * otherwise we get SEGFAULT at "cpu_handle_guest_debug"
+ * Alternatively, QEMU source needs to be patched to check gdbserver_state.init flag
+*/
 %inline %{
     typedef struct GDBState { bool init; } GDBState;
     extern GDBState gdbserver_state;
@@ -371,6 +373,15 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
         return (void *)o;
     }
 
+    // get pointer to content of "bytes" type in python (to use as src buffer of a copy)
+    void *BytesToVoidPtr(PyObject *o) {
+        if (!PyBytes_Check(o)) {
+            PyErr_SetString(PyExc_ValueError,"Expected bytes object");
+            return NULL;
+        }
+        return PyBytes_AsString(o);
+    }
+
     //make pointer cast functions, e.g.: Object * ToObject(...)
     //in C you would use explicit cast, in python you can't!
     #define PTRCAST_NAME(type,funcname) type * funcname( void *p) { return (type *) p; };
@@ -457,13 +468,13 @@ CPUs = QTAILQPy(cvar.cpus_queue, "node")
 AllBPs = {}
 
 def GDBstubInit():
-#we need to init gdserver stub to be ableto use BP_GDB breakpoints
     if not cvar.gdbserver_state.init:
         gdb_init_gdbserver_state()
         gdb_create_default_process(cvar.gdbserver_state)
 
 def Breakpoint(cpu, addr, cb):
-    GDBstubInit()
+    #GDBstubInit() <-- If we do not patch QEMUs source ("cpu_handle_guest_debug"), we get a SEGFAULT. 
+    #Alternatively, if we do not want to use GDB, we can initialize the stub ourselves
     cpu_breakpoint_insert(cpu, addr, BP_GDB, None)
     if cpu.cpu_index not in AllBPs:
         AllBPs[cpu.cpu_index] = {}
@@ -482,16 +493,17 @@ def BPStateChanged(running, state):
     try:
         #import pdb; pdb.set_trace()
         if state == RUN_STATE_DEBUG:
+            print("DEBUG")
             for cs in CPUs:
-                cpu_single_step(cs, 0)
                 pc = cs.pc
                 if pc in AllBPs[cs.cpu_index]:
+                    cpu_single_step(cs, 0)
                     AllBPs[cs.cpu_index][pc](cs)
                     tb_flush(cs)
                     if pc == cs.pc: # if we are still at the BP, single step (like GDB does)
                         #print("SINGLESTEP")
                         cpu_single_step(cs, (SSTEP_ENABLE | SSTEP_NOIRQ | SSTEP_NOTIMER) & accel_supported_gdbstub_sstep_flags())
-            Resume = True
+                    Resume = True
 
     except:
         pass
@@ -532,6 +544,10 @@ def RegisterIOMemRegionWithOps(namespace, base, size):
     memory_region_init_io(namespace.mr, namespace.obj,
                           namespace.mo, ToVoidPtr(namespace), namespace.__name__, size)
     memory_region_add_subregion(get_system_memory(), base, namespace.mr)
+
+
+MEMTXATTRS_UNSPECIFIED = MemTxAttrs()
+MEMTXATTRS_UNSPECIFIED.unspecified = 1
 #pragma endregion
 %}
 #pragma endregion High Level Helpers */
