@@ -58,6 +58,9 @@ class _SwigNonDynamicMeta(type):
     __setattr__ = _swig_setattr_nondynamic_class_variable(type.__setattr__)
 
 
+
+def MachineClass_init_set(_self, cb):
+    return _pyboard.MachineClass_init_set(_self, cb)
 TYPE_OBJECT = _pyboard.TYPE_OBJECT
 class ObjectProperty(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
@@ -1440,7 +1443,7 @@ class MachineClass(object):
     alias = property(_pyboard.MachineClass_alias_get, _pyboard.MachineClass_alias_set)
     desc = property(_pyboard.MachineClass_desc_get, _pyboard.MachineClass_desc_set)
     deprecation_reason = property(_pyboard.MachineClass_deprecation_reason_get, _pyboard.MachineClass_deprecation_reason_set)
-    init = property(_pyboard.MachineClass_init_get, _pyboard.MachineClass_init_set)
+    _init = property(_pyboard.MachineClass__init_get, _pyboard.MachineClass__init_set)
     reset = property(_pyboard.MachineClass_reset_get, _pyboard.MachineClass_reset_set)
     wakeup = property(_pyboard.MachineClass_wakeup_get, _pyboard.MachineClass_wakeup_set)
     kvm_type = property(_pyboard.MachineClass_kvm_type_get, _pyboard.MachineClass_kvm_type_set)
@@ -1490,6 +1493,9 @@ class MachineClass(object):
     possible_cpu_arch_ids = property(_pyboard.MachineClass_possible_cpu_arch_ids_get, _pyboard.MachineClass_possible_cpu_arch_ids_set)
     get_default_cpu_node_id = property(_pyboard.MachineClass_get_default_cpu_node_id_get, _pyboard.MachineClass_get_default_cpu_node_id_set)
     fixup_ram_size = property(_pyboard.MachineClass_fixup_ram_size_get, _pyboard.MachineClass_fixup_ram_size_set)
+
+    init = property(None, _pyboard.MachineClass_init_set)
+
 
     def __init__(self):
         _pyboard.MachineClass_swiginit(self, _pyboard.new_MachineClass())
@@ -1731,7 +1737,35 @@ def qdev_prop_set_after_realize(dev, name, errp):
 
 def qdev_prop_allow_set_link_before_realize(obj, name, val, errp):
     return _pyboard.qdev_prop_allow_set_link_before_realize(obj, name, val, errp)
+IF_DEFAULT = _pyboard.IF_DEFAULT
+IF_NONE = _pyboard.IF_NONE
+IF_IDE = _pyboard.IF_IDE
+IF_SCSI = _pyboard.IF_SCSI
+IF_FLOPPY = _pyboard.IF_FLOPPY
+IF_PFLASH = _pyboard.IF_PFLASH
+IF_MTD = _pyboard.IF_MTD
+IF_SD = _pyboard.IF_SD
+IF_VIRTIO = _pyboard.IF_VIRTIO
+IF_XEN = _pyboard.IF_XEN
+IF_COUNT = _pyboard.IF_COUNT
+class DriveInfo(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+    type = property(_pyboard.DriveInfo_type_get, _pyboard.DriveInfo_type_set)
+    bus = property(_pyboard.DriveInfo_bus_get, _pyboard.DriveInfo_bus_set)
+    unit = property(_pyboard.DriveInfo_unit_get, _pyboard.DriveInfo_unit_set)
+    auto_del = property(_pyboard.DriveInfo_auto_del_get, _pyboard.DriveInfo_auto_del_set)
+    is_default = property(_pyboard.DriveInfo_is_default_get, _pyboard.DriveInfo_is_default_set)
+    media_cd = property(_pyboard.DriveInfo_media_cd_get, _pyboard.DriveInfo_media_cd_set)
+    opts = property(_pyboard.DriveInfo_opts_get, _pyboard.DriveInfo_opts_set)
+    next = property(_pyboard.DriveInfo_next_get)
 
+    def __init__(self):
+        _pyboard.DriveInfo_swiginit(self, _pyboard.new_DriveInfo())
+    __swig_destroy__ = _pyboard.delete_DriveInfo
+
+# Register DriveInfo in _pyboard:
+_pyboard.DriveInfo_swigregister(DriveInfo)
 qdev_prop_bit = cvar.qdev_prop_bit
 qdev_prop_bit64 = cvar.qdev_prop_bit64
 qdev_prop_bool = cvar.qdev_prop_bool
@@ -1749,4 +1783,53 @@ qdev_prop_on_off_auto = cvar.qdev_prop_on_off_auto
 qdev_prop_size32 = cvar.qdev_prop_size32
 qdev_prop_array = cvar.qdev_prop_array
 qdev_prop_link = cvar.qdev_prop_link
+
+class DriveInfo_next(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+    tqe_next = property(_pyboard.DriveInfo_next_tqe_next_get, _pyboard.DriveInfo_next_tqe_next_set)
+    tqe_circ = property(_pyboard.DriveInfo_next_tqe_circ_get, _pyboard.DriveInfo_next_tqe_circ_set)
+
+    def __init__(self):
+        _pyboard.DriveInfo_next_swiginit(self, _pyboard.new_DriveInfo_next())
+    __swig_destroy__ = _pyboard.delete_DriveInfo_next
+
+# Register DriveInfo_next in _pyboard:
+_pyboard.DriveInfo_next_swigregister(DriveInfo_next)
+
+def blockdev_mark_auto_del(blk):
+    return _pyboard.blockdev_mark_auto_del(blk)
+
+def blockdev_auto_del(blk):
+    return _pyboard.blockdev_auto_del(blk)
+
+def blk_legacy_dinfo(blk):
+    return _pyboard.blk_legacy_dinfo(blk)
+
+def blk_set_legacy_dinfo(blk, dinfo):
+    return _pyboard.blk_set_legacy_dinfo(blk, dinfo)
+
+def blk_by_legacy_dinfo(dinfo):
+    return _pyboard.blk_by_legacy_dinfo(dinfo)
+
+def override_max_devs(type, max_devs):
+    return _pyboard.override_max_devs(type, max_devs)
+
+def drive_get(type, bus, unit):
+    return _pyboard.drive_get(type, bus, unit)
+
+def drive_check_orphaned():
+    return _pyboard.drive_check_orphaned()
+
+def drive_get_by_index(type, index):
+    return _pyboard.drive_get_by_index(type, index)
+
+def drive_get_max_bus(type):
+    return _pyboard.drive_get_max_bus(type)
+
+def drive_add(type, index, file, optstr):
+    return _pyboard.drive_add(type, index, file, optstr)
+
+def drive_new(arg, block_default_type, errp):
+    return _pyboard.drive_new(arg, block_default_type, errp)
 
