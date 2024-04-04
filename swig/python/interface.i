@@ -590,5 +590,7 @@ def RegisterIOMemRegionWithOps(namespace, base=None, size=None, obj=None):
 MEMTXATTRS_UNSPECIFIED = MemTxAttrs()
 MEMTXATTRS_UNSPECIFIED.unspecified = 1
 #pragma endregion
+
+from helpers import print
 %}
 #pragma endregion High Level Helpers */
