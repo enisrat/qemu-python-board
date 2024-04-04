@@ -9,7 +9,7 @@ import sys
 import builtins
 
 
-def _stdout_write(s):
+def stdout_write_nonblocking(s):
     written = 0
     while written < len(s):
         try:
@@ -21,4 +21,4 @@ def _stdout_write(s):
 def print(*args, **kwargs):
 	buf = io.StringIO()
 	builtins.print(*args, file=buf, **kwargs)
-	_stdout_write(buf.getvalue().encode())
+	stdout_write_nonblocking(buf.getvalue().encode())
