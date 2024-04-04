@@ -488,7 +488,7 @@ def BPStateChanged(running, state):
                     AllBPs[cs.cpu_index][pc](cs)
                     tb_flush(cs)
                     if pc == cs.pc: # if we are still at the BP, single step (like GDB does)
-                        print("SINGLESTEP")
+                        #print("SINGLESTEP")
                         cpu_single_step(cs, (SSTEP_ENABLE | SSTEP_NOIRQ | SSTEP_NOTIMER) & accel_supported_gdbstub_sstep_flags())
             Resume = True
 
