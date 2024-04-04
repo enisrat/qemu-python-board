@@ -232,8 +232,10 @@ static UfsReqResult ufs_emulate_scsi_cmd(UfsLu *lu, UfsRequest *req)
         }
         /* fallthrough */
     default:
-        scsi_build_sense(sense_buf, SENSE_CODE(INVALID_OPCODE));
-        scsi_status = CHECK_CONDITION;
+        len = scsi_build_sense_buf(outbuf, sizeof(outbuf), SENSE_CODE(NO_SENSE),
+                                   true);
+        scsi_status = GOOD;
+        break;
     }
 
     len = MIN(len, (int)req->data_len);
