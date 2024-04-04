@@ -34,8 +34,10 @@
 #include "qom/object.h"
 //qapi
 #include "qapi/error.h"
+#include "qapi/qapi-types-common.h"
 //exec
 #include "exec/cpu-common.h"
+#include "exec/cpu-defs.h"
 #include "exec/hwaddr.h"
 #include "exec/memattrs.h"
 #include "exec/memop.h"
@@ -57,11 +59,27 @@
 #include "hw/resettable.h"
 #include "hw/i2c/i2c.h"
 #include "hw/sd/sd.h"
+#include "hw/registerfields.h"
+#include "hw/core/cpu.h"
 %}
+
+
+
 #ifdef TARGET_NAME_ARM
 	%{
     #include "hw/arm/boot.h"
 	#include "hw/arm/allwinner-a10.h"
+    #include "hw/timer/allwinner-a10-pit.h"
+    #include "hw/intc/allwinner-a10-pic.h"
+    #include "hw/net/allwinner_emac.h"
+    #include "hw/sd/allwinner-sdhost.h"
+    #include "hw/rtc/allwinner-rtc.h"
+    #include "hw/misc/allwinner-a10-ccm.h"
+    #include "hw/misc/allwinner-a10-dramc.h"
+    #include "hw/i2c/allwinner-i2c.h"
+    #include "hw/watchdog/allwinner-wdt.h"
+    #include "cpu-qom.h"
+    #include "cpu.h"
 	%}
 #endif
 
@@ -75,6 +93,8 @@
 #define G_NORETURN
 #define G_GNUC_PRINTF(a,b)
 #define __attribute__(x)
+#define _Static_assert(a,b)
+#define __thread
 
 //ignore functions with va_list for now
 %ignore object_new_with_propv;
@@ -119,7 +139,9 @@
 /* ######## START Miscellaneous fixes */
 
 //fix "property" members in structs --> rename "_property"
-%rename("_%s",  "match$ismember"="1") "property";
+%rename("_%s",  "match$ismember"="1") "property";   //swig bug, property is a python keyword
+%rename("$ignore",  regextarget=1, fullname=1) "CPUState.*jmp_env"; // does not work because it is of typedef ... x[1]
+%ignore pred_esz_masks;
 /* ######## END Miscellaneous fixes */
 
 
@@ -143,6 +165,7 @@
 %include "qom/object.h"
 //qapi
 %include "qapi/error.h"
+%include "qapi/qapi-types-common.h"
 //exec
 %include "exec/cpu-common.h"
 %include "exec/hwaddr.h"
@@ -166,6 +189,8 @@
 %include "hw/resettable.h"
 %include "hw/i2c/i2c.h"
 %include "hw/sd/sd.h"
+%include "hw/registerfields.h"
+%include "hw/core/cpu.h"
 
 #ifdef TARGET_NAME_ARM
     %include "hw/arm/boot.h"
@@ -179,6 +204,8 @@
     %include "hw/misc/allwinner-a10-dramc.h"
     %include "hw/i2c/allwinner-i2c.h"
     %include "hw/watchdog/allwinner-wdt.h"
+    %include "cpu-qom.h"
+    %include "cpu.h"
 #endif
 /* ######## END Include files to wrap */
 
