@@ -11,7 +11,8 @@
 #ifndef HW_UFS_UFS_H
 #define HW_UFS_UFS_H
 
-#include "hw/pci/pci_device.h"
+#include "hw/sysbus.h"
+#include "sysemu/dma.h"
 #include "hw/scsi/scsi.h"
 #include "block/ufs.h"
 
@@ -79,7 +80,7 @@ typedef struct UfsParams {
 } UfsParams;
 
 typedef struct UfsHc {
-    PCIDevice parent_obj;
+    SysBusDevice parent_obj;
     UfsBus bus;
     MemoryRegion iomem;
     UfsReg reg;
