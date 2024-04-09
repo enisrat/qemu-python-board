@@ -71,6 +71,7 @@
 #include "qapi/error.h"
 #include "qapi/qapi-types-common.h"
 #include "qapi/qapi-types-run-state.h"
+#include "qapi/qmp/qlist.h"
 //exec
 #include "exec/cpu-common.h"
 #include "exec/cpu-defs.h"
@@ -175,6 +176,7 @@
 %include "qapi/error.h"
 %include "qapi/qapi-types-common.h"
 %include "qapi/qapi-types-run-state.h"
+%include "qapi/qmp/qlist.h"
 //exec
 %include "exec/cpu-common.h"
 %include "exec/hwaddr.h"
@@ -526,7 +528,7 @@ def BPStateChanged(running, state):
             ResumeHow = "Resume"
         for cs in CPUs:
             pc = cs.pc
-            if pc in AllBPs[cs.cpu_index]:
+            if pc in AllBPs.get(cs.cpu_index, {}):
                 GDBAllowStopOld = cvar.gdbserver_state.allow_stop_reply    
                 cvar.gdbserver_state.allow_stop_reply = False # This is a hack to prevent OUR Breakpoint from being passed to attached GDB client
                 AllBPs[cs.cpu_index][pc](cs)
