@@ -82,6 +82,7 @@
 #include "exec/memory.h"
 #include "exec/address-spaces.h"
 #include "exec/tb-flush.h"
+#include "exec/exec-all.h"
 //block
 #include "block/block.h"
 #include "block/block-common.h"
@@ -186,6 +187,7 @@
 %include "memory.h.processed.h" // for "exec/memory.h"
 %include "exec/address-spaces.h"
 %include "exec/tb-flush.h"
+%include "exec/exec-all.h"
 //block
 %include "block/block.h"
 %include "block/block-common.h"
@@ -499,20 +501,32 @@ def GDBstubInit():
         gdb_init_gdbserver_state()
         gdb_create_default_process(cvar.gdbserver_state)
 
-def Breakpoint(cpu, addr, cb):
-    #GDBstubInit() <-- If we do not patch QEMUs source ("cpu_handle_guest_debug"), we get a SEGFAULT. 
-    #Alternatively, if we do not want to use GDB, we can initialize the stub ourselves
-    cpu_breakpoint_insert(cpu, addr, BP_GDB, None)
-    if cpu.cpu_index not in AllBPs:
-        AllBPs[cpu.cpu_index] = {}
-    AllBPs[cpu.cpu_index][addr] = cb
 
-def DelBreakpoint(cpu, addr):
+# lcpu may be a single CPU state or a list of CPU states to attach BP to
+def Breakpoint(lcpu, addr, cb):
     try:
-        del AllBPs[cpu.cpu_index][addr]
-    except:
-        pass
+        iterator = iter(lcpu)
+    except TypeError:
+        iterator = [lcpu]
 
+    for cpu in iterator:
+        cpu_breakpoint_insert(cpu, addr, BP_GDB, None)
+        if cpu.cpu_index not in AllBPs:
+            AllBPs[cpu.cpu_index] = {}
+        AllBPs[cpu.cpu_index][addr] = cb
+
+# lcpu may be a single CPU state or a list of CPU states to attach BP to
+def DelBreakpoint(lcpu, addr):
+    try:
+        iterator = iter(lcpu)
+    except TypeError:
+        iterator = [lcpu]
+
+    for cpu in iterator:
+        try:
+            del AllBPs[cpu.cpu_index][addr]
+        except:
+            pass
 
 ResumeHow = ""
 def BPStateChanged(running, state):
