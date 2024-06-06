@@ -607,6 +607,6 @@ MEMTXATTRS_UNSPECIFIED = MemTxAttrs()
 MEMTXATTRS_UNSPECIFIED.unspecified = 1
 #pragma endregion
 
-from helpers import print, stdout_write_nonblocking
 %}
+%pythoncode "helpers.py"
 #pragma endregion High Level Helpers */
