@@ -73,6 +73,7 @@
 #include "qapi/qapi-types-run-state.h"
 #include "qapi/qmp/qlist.h"
 //exec
+#include "exec/vaddr.h"
 #include "exec/cpu-common.h"
 #include "exec/cpu-defs.h"
 #include "exec/hwaddr.h"
@@ -179,6 +180,7 @@
 %include "qapi/qapi-types-run-state.h"
 %include "qapi/qmp/qlist.h"
 //exec
+%include "exec/vaddr.h"
 %include "exec/cpu-common.h"
 %include "exec/hwaddr.h"
 %include "exec/memattrs.h"

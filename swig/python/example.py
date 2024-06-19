@@ -17,7 +17,8 @@ def mybp(cpu):
     print(f"Register r0: {regs[0]}")
     regs[0] = 0xdeadbeef   # Set r0 = 0xdeadbeef
    
-    env.regs = regs # can only set all regs[16] at once!
+    env.regs = regs     # can set all regs[16] at once
+    env.r0 = 0xdeadbeef # can set a single reg (depends on Arch though)
 
     #cpu.pc = 0x12345678 #Crash your machine!
 
@@ -97,7 +98,7 @@ def pyboard_init(ms):
 
     print("arm_load_kernel OK")
 
-    qemu_add_vm_change_state_handler_py(state_changed)
+    qemu_add_vm_change_state_handler_prio_py(state_changed, 200)
 
     # add a GDB breakpoint with callback to CPU 0
     Breakpoint(CPUs[0], 0xc00ae2fc, mybp)

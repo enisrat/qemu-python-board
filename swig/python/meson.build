@@ -35,8 +35,9 @@ interface_wrap_c = custom_target(
                 '-I' + meson.global_source_root() + '/include', 
                 '-I' + meson.global_source_root() + '/' + target_inc, 
                 '-I' + meson.current_build_dir(), 
+                '-I' + meson.project_build_root(), 
                 '@INPUT@' ],
-    depends: [memory_h_preprocess, symlink_example]
+    depends: [qapi_files, memory_h_preprocess, symlink_example]
 )
 
 py_ss = ss.source_set()
