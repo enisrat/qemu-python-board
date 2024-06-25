@@ -15,6 +15,7 @@
 #include "exec/plugin-gen.h"
 #include "tcg/tcg-op-common.h"
 #include "internal-target.h"
+#include "tcg/instrument.h"
 
 static void set_can_do_io(DisasContextBase *db, bool val)
 {
@@ -154,6 +155,24 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
         if (plugin_enabled) {
             plugin_gen_insn_start(cpu, db);
         }
+
+        /* INSTRUMENT */
+        /*  Ignore instrumentation on first instruction.
+            If there would be an instrumentation "Breakpoint" on the first instruction PC, 
+            it would have been checked in code earlier before translation
+        */
+        if(  db->pc_next != db->pc_first && check_instrument(db->pc_next, cpu->cpu_index)) {
+            if (tcg_ctx->exitreq_label == NULL) {
+                /* This trick will leave the TB with TB_EXIT_REQUESTED -> Thus no TB chaining will happen */
+                tcg_ctx->exitreq_label = gen_new_label();
+
+                /* set interrupt flag without anything else, the cpu_exec_loop will reset it anyways */
+                tcg_gen_st16_i32(tcg_constant_i32(-1), tcg_env,
+                         offsetof(ArchCPU, parent_obj.neg.icount_decr.u16.high)
+                         - offsetof(ArchCPU, env));
+            }
+            break;
+        };
 
         /*
          * Disassemble one instruction.  The translate_insn hook should

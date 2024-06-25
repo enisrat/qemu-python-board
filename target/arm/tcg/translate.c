@@ -9690,6 +9690,8 @@ static const TranslatorOps thumb_translator_ops = {
     .disas_log          = arm_tr_disas_log,
 };
 
+
+
 /* generate intermediate code for basic block 'tb'.  */
 void gen_intermediate_code(CPUState *cpu, TranslationBlock *tb, int *max_insns,
                            vaddr pc, void *host_pc)

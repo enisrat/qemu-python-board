@@ -41,6 +41,7 @@
 #include "tb-context.h"
 #include "internal-common.h"
 #include "internal-target.h"
+#include "tcg/instrument.h"
 
 /* -icount align implementation. */
 
@@ -959,6 +960,12 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
             vaddr pc;
             uint64_t cs_base;
             uint32_t flags, cflags;
+
+            /* Instrument Breakpoint pending?
+             * Handle this before all other stuff
+             */
+            pc = cpu->cc->get_pc(cpu);
+            call_instrument_cb(cpu, pc);
 
             cpu_get_tb_cpu_state(cpu_env(cpu), &pc, &cs_base, &flags);
 

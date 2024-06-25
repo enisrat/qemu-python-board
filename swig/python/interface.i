@@ -104,6 +104,8 @@
 #include "hw/registerfields.h"
 #include "hw/core/cpu.h"
 #include "hw/sysbus.h"
+//tcg
+#include "tcg/instrument.h"
 %}
 #if defined TARGET_NAME_ARM || defined  TARGET_NAME_AARCH64
 	%{
@@ -210,6 +212,8 @@
 %include "hw/registerfields.h"
 %include "hw/core/cpu.h"
 %include "hw/sysbus.h"
+//tcg
+%include "tcg/instrument.h"
 
 //manual includes to wrap
 #pragma region gdbstub/internals.h
@@ -377,6 +381,22 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
 
     #pragma endregion
 
+    #pragma region Instrument Callback
+    %{
+    void InstrumentCallback_py (CPUState *cs, vaddr pc, void *opaque) {
+        PyObject * pyfunc = (PyObject *)opaque;
+        PyObject * pycs = SWIG_NewPointerObj(SWIG_as_voidptr(cs), SWIGTYPE_p_CPUState,  0 );
+        PyObject *ret = PyObject_CallFunction(pyfunc, "(O)", pycs); 
+        if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret );  
+    }
+    %}
+    %inline %{
+        bool add_instrument_py(uint64_t pc, int cpu_index, PyObject *cb) {
+            return add_instrument(pc, cpu_index, &InstrumentCallback_py, cb);
+        }
+    %}
+    #pragma endregion
+
 #pragma endregion Callback translate functions */
 
 #pragma region Additional helpers */
@@ -496,6 +516,7 @@ def CHECK_ERR():
 CPUs = QTAILQPy(cvar.cpus_queue, "node")
 
 #pragma region BREAKPOINT HANDLING
+
 AllBPs = {}
 
 def GDBstubInit():
@@ -575,6 +596,14 @@ def main_loop_poll_notify():
 
 main_loop_poll_add_notifier_py(main_loop_poll_notify)
 #pragma endregion BREAKPOINT HANDLING
+#pragma region Instrument Callback
+# A special kind of Breakpoint which is efficiently handled by TCG intermediate
+# cs (CPUState) is optional, if None it will add to ALL vCPUs
+# Consider that the machine is NOT HALTED. The Callback will execute inside the vCPU thread.
+def InstrBreakpoint(pc, cb, cs=None):
+    return add_instrument_py(pc, cs.cpu_index if cs else -1, cb)
+
+#pragma endregion
 #pragma region MemRegion Abstraction
 def RegisterIOMemRegionWithOps(namespace, base=None, size=None, obj=None):
     """
