@@ -165,12 +165,11 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
             if (tcg_ctx->exitreq_label == NULL) {
                 /* This trick will leave the TB with TB_EXIT_REQUESTED -> Thus no TB chaining will happen */
                 tcg_ctx->exitreq_label = gen_new_label();
-
-                /* set interrupt flag without anything else, the cpu_exec_loop will reset it anyways */
-                tcg_gen_st16_i32(tcg_constant_i32(-1), tcg_env,
-                         offsetof(ArchCPU, parent_obj.neg.icount_decr.u16.high)
-                         - offsetof(ArchCPU, env));
             }
+            /* set interrupt flag without anything else, the cpu_exec_loop will reset it anyways */
+            tcg_gen_st16_i32(tcg_constant_i32(-1), tcg_env,
+                        offsetof(ArchCPU, parent_obj.neg.icount_decr.u16.high)
+                        - offsetof(ArchCPU, env));
             break;
         };
 

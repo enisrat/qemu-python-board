@@ -294,10 +294,14 @@ GByteArray *g_byte_array_set_size (GByteArray *array, guint length);
     #pragma region MachineClass
 %{ static PyObject *MachineClass_init_cbpyfunc = NULL; 
 	static void MachineClass_init_cb(MachineState *ms) {
+        PyGILState_STATE pygils = PyGILState_Ensure();
+
 		if(!MachineClass_init_cbpyfunc) return;
 		PyObject * pyobj = SWIG_NewPointerObj(SWIG_as_voidptr(ms), SWIGTYPE_p_MachineState,  0 );
         PyObject *ret = PyObject_CallFunction(MachineClass_init_cbpyfunc, "(O)", pyobj);
         if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret ); 
+
+        PyGILState_Release(pygils);
 	}
 %}
 %inline %{
@@ -322,9 +326,13 @@ GByteArray *g_byte_array_set_size (GByteArray *array, guint length);
     #pragma region STATE CHANGE (Breakpoints)
 %{
 void vm_change_state_handler_cb(void *opaque, bool running, RunState state) {
+    PyGILState_STATE pygils = PyGILState_Ensure();
+
     PyObject * pyfunc = (PyObject *)opaque;
     PyObject *ret = PyObject_CallFunction(pyfunc, "(OI)", running ? Py_True: Py_False, state); 
     if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret ); 
+
+    PyGILState_Release(pygils);
 }
 %}
 %inline %{
@@ -336,8 +344,12 @@ void vm_change_state_handler_cb(void *opaque, bool running, RunState state) {
 %{
 static PyObject *pynotifier_cb;
 void main_loop_notifier_cb(Notifier *notifier, void *data) {
+    PyGILState_STATE pygils = PyGILState_Ensure();
+
     PyObject *ret = PyObject_CallFunction(pynotifier_cb, "()");
     if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret );  
+
+    PyGILState_Release(pygils);
 }
 static Notifier pynotifier = {.notify = main_loop_notifier_cb};
 %}
@@ -353,6 +365,8 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
     
     %inline %{
     uint64_t MemoryRegionOpsReadCB(void *opaque, hwaddr addr, unsigned size) {
+        PyGILState_STATE pygils = PyGILState_Ensure();
+
         PyObject *pyops = (PyObject *) opaque;
         PyObject *pyfunc = PyObject_GetAttrString(pyops, "read");
 
@@ -361,14 +375,19 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
         uint64_t ret = PyLong_AsLong(retpy);
         Py_XDECREF(retpy);
 
+        PyGILState_Release(pygils);
         return ret;        
     }
     void MemoryRegionOpsWriteCB(void *opaque, hwaddr addr, uint64_t data, unsigned size) {
+        PyGILState_STATE pygils = PyGILState_Ensure();
+
         PyObject *pyops = (PyObject *) opaque;
         PyObject *pyfunc = PyObject_GetAttrString(pyops, "write");
 
         PyObject *ret = PyObject_CallFunction(pyfunc, "KKK", addr, data, size);
-        if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret );        
+        if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret );      
+
+        PyGILState_Release(pygils);  
     }
     void MemoryRegionOpsInitForPython(MemoryRegionOps *ops) {
         ops->read = MemoryRegionOpsReadCB;
@@ -384,10 +403,15 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
     #pragma region Instrument Callback
     %{
     void InstrumentCallback_py (CPUState *cs, vaddr pc, void *opaque) {
+        PyGILState_STATE pygils = PyGILState_Ensure();
+
+        printf("InstrCallback: %llx %llx\n", pc, pygils);
         PyObject * pyfunc = (PyObject *)opaque;
         PyObject * pycs = SWIG_NewPointerObj(SWIG_as_voidptr(cs), SWIGTYPE_p_CPUState,  0 );
         PyObject *ret = PyObject_CallFunction(pyfunc, "(O)", pycs); 
-        if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret );  
+        if( ret == NULL) PyErr_Print(); else Py_XDECREF( ret );
+        
+        PyGILState_Release(pygils);
     }
     %}
     %inline %{
