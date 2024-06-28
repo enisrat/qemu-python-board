@@ -62,7 +62,7 @@ static void pyboard_machine_init(MachineClass *mc)
     PyObject *pModule, *pFunc;
 
     pModule = load_python_script();
-        if( pModule != NULL ) {
+    if( pModule != NULL ) {
 
         pFunc = PyObject_GetAttrString(pModule, "machine_init");
         if(!pFunc){
@@ -76,6 +76,8 @@ static void pyboard_machine_init(MachineClass *mc)
             exit(1);
         }
         Py_DECREF(pret);
+
+        PyEval_SaveThread();
     }
 }
 
