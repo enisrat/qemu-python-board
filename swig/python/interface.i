@@ -405,7 +405,7 @@ void main_loop_poll_add_notifier_py(PyObject *cb) {
     void InstrumentCallback_py (CPUState *cs, vaddr pc, void *opaque) {
         PyGILState_STATE pygils = PyGILState_Ensure();
 
-        printf("InstrCallback: %llx %llx\n", pc, pygils);
+        //printf("InstrCallback: %llx %llx\n", pc, pygils);
         PyObject * pyfunc = (PyObject *)opaque;
         PyObject * pycs = SWIG_NewPointerObj(SWIG_as_voidptr(cs), SWIGTYPE_p_CPUState,  0 );
         PyObject *ret = PyObject_CallFunction(pyfunc, "(O)", pycs); 
