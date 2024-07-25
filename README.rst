@@ -23,6 +23,54 @@ Compilation
 * At the moment only building x86_64 binary supported (due to hard coded ``DSWIGWORDSIZE64`` atm)
 * Right now only ONE target can be build
 
+- Build latest swig
+```
+git clone https://github.com/swig/swig
+./autogen.sh && ./configure
+make
+sudo make install
+cd ..
+```
+
+- Clone this repo
+```
+git clone https://github.com/enisrat/qemu-python-board
+cd qemu-python-board
+```
+
+- Build aarch64, arm
+
+```bash
+mkdir builddir && cd builddir
+../configure --enable-debug --enable-gtk --disable-werror --target-list="aarch64-softmmu,arm-softmmu" --enable-fdt --disable-kvm --disable-xen --enable-gcrypt
+make -j `nproc`
+```
+
+- Build i386, x86_64
+
+```bash
+mkdir builddir && cd builddir
+../configure --enable-debug --enable-gtk --disable-werror --target-list="x86_64-softmmu,i386-softmmu" --enable-fdt --disable-kvm --disable-xen --enable-gcrypt
+make -j `nproc`
+```
+
+- Build loongarch64
+
+```bash
+mkdir builddir && cd builddir
+../configure --enable-debug --enable-gtk --disable-werror --target-list="loongarch64-softmmu" --enable-fdt --disable-kvm --disable-xen --enable-gcrypt
+make -j `nproc`
+```
+
+- Build ppc64
+
+```bash
+mkdir builddir && cd builddir
+../configure --enable-debug --enable-gtk --disable-werror --target-list="ppc64-softmmu" --enable-fdt --disable-kvm --disable-xen --enable-gcrypt
+make -j `nproc`
+```
+
+
 Usage
 =====
 

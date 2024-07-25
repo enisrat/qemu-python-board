@@ -1936,6 +1936,11 @@ static void handle_target_halt(GArray *params, void *user_ctx)
     //gdb_breakpoint_remove_all(gdbserver_state.c_cpu);
 }
 
+static void handle_breakpoint_remove_all(GArray *params, void *user_ctx)
+{
+    gdb_breakpoint_remove_all(gdbserver_state.c_cpu);
+}
+
 static int gdb_handle_packet(const char *line_buf)
 {
     const GdbCmdParseEntry *cmd_parser = NULL;
@@ -1955,6 +1960,18 @@ static int gdb_handle_packet(const char *line_buf)
                 .allow_stop_reply = true,
             };
             cmd_parser = &target_halted_cmd_desc;
+        }
+        break;
+    case 'x':
+        {
+            static const GdbCmdParseEntry breakpoint_remove_all_cmd_desc = {
+                .handler = handle_breakpoint_remove_all,
+                .cmd = "x",
+                .cmd_startswith = 1,
+                .allow_stop_reply = true,
+                .schema = "l0"
+            };
+            cmd_parser = &breakpoint_remove_all_cmd_desc;
         }
         break;
     case 'c':
