@@ -27,6 +27,8 @@ endif
 NAMES += hwprofile
 NAMES += cache
 NAMES += drcov
+NAMES += ips
+NAMES += stoptrigger
 
 ifeq ($(CONFIG_WIN32),y)
 SO_SUFFIX := .dll
