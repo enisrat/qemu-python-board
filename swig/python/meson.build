@@ -9,7 +9,7 @@ target_inc = 'target' / config_target['TARGET_BASE_ARCH']
 memory_h_preprocess = custom_target(
     'memory_h_preprocess',
     output: 'memory.h.processed.h',
-    input: '../../include/exec/memory.h',
+    input: meson.global_source_root() + '/include/exec/memory.h',
     capture: true,
     feed: true,
     command: [ 'python3', meson.current_source_dir() / 'replace_templated_headers.py', meson.global_source_root()+ '/include']
@@ -34,6 +34,7 @@ interface_wrap_c = custom_target(
                 '-DCONFIG_DEVICES=@0@-config-devices.h'.format(target), '-DTARGET_NAME_@0@'.format(target_name.to_upper()), 
                 '-I' + meson.global_source_root() + '/include', 
                 '-I' + meson.global_source_root() + '/' + target_inc, 
+                '-I' + meson.global_source_root() + '/swig/python', 
                 '-I' + meson.current_build_dir(), 
                 '-I' + meson.project_build_root(), 
                 '@INPUT@' ],
