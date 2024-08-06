@@ -47,6 +47,17 @@
 // add your hardcoded fixed array size here. In SWIG it is not possible to specify all hardcoded sizes and exclude [ANY] (which matches [])
 %apply uint32_t[16] { uint32_t[32], uint64_t[16], uint64_t[32] };
 
+
+// qemu_irq is actually a struct*
+%typemap(in) qemu_irq {
+  if ((SWIG_ConvertPtr($input, (void **) &$1, $1_descriptor, 0)) == -1) return NULL;
+}
+// The returned IRQ reference should not be owned
+%typemap(out) qemu_irq {
+    $result = SWIG_NewPointerObj ($1, $descriptor, 0);
+}
+
+
 #pragma endregion Typemap Mods */
 
 #pragma region Header Includes
