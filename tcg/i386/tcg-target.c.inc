@@ -2522,6 +2522,37 @@ static void tcg_out_exit_tb(TCGContext *s, uintptr_t a0)
     }
 }
 
+/*Generate compact and fast code for recording the edge information*/
+static void tcg_out_rec_edge(TCGContext *s, TCGType type, TCGReg pc, TCGReg out_edge_id) {
+    /*Actually need SSE4.2 for CRC32*/
+    tcg_debug_assert(have_avx);
+
+    if (type1 == TCG_TYPE_I32) {
+    } else if (type1 == TCG_TYPE_I64) {
+        /* 16 is a compiletime decision. 
+        As most VAs are below 48 bits (4*9+12 for 4stage pagetable), 
+        shifting by 16 should not be a too hard constraint*/
+        tcg_out_mov(s, TCG_TYPE_I64, TCG_REG_L0, pc);
+        tcg_out_shifti(s, SHIFT_SHL, TCG_REG_L0, 16);
+        tgen_arithr(s, ARITH_XOR,  TCG_REG_L0, out_edge_id);
+        /*Now: L0 = (pc<<16) ^ out_edge_id*/
+
+        /*CRC32 r64,r/m64 (SSE4.2)*/
+        tcg_out_modrm(s, 0xf1 | P_SIMDF2 | P_EXT | P_EXT38, TCG_REG_L0, TCG_REG_L0);
+        tcg_out_mov(s, TCG_TYPE_I64, TCG_REG_L1, TCG_AREG0);
+        tgen_arithi(s, ARITH_SUB, TCG_REG_L1, cov_rec_buf_ofs(s)-1);
+        tgen_arithi(s, ARITH_AND, TCG_REG_L0, (1 << EDGE_COVERAGE_RECORD_BUF_BITSHIFT) -1);
+
+        #if EDGE_COVERAGE_RECORD_ELEM_SIZE == 1
+            /*INC byte ptr[cov_rec_buf + L0]*/
+            tcg_out_modrm_offset(s, 0xfe, TCG_REG_L1,0, TCG_REG_L0)
+        #endif
+
+    } else {
+        g_assert_not_reached();
+    }
+}
+
 static void tcg_out_goto_tb(TCGContext *s, int which)
 {
     /*
@@ -2996,6 +3027,13 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
     case INDEX_op_mb:
         tcg_out_mb(s, a0);
         break;
+    case INDEX_op_rec_edge_i32:
+        tcg_out_rec_edge(s, TCG_TYPE_I32, a0, a1);
+        break;
+    case INDEX_op_rec_edge_i64:
+        tcg_out_rec_edge(s, TCG_TYPE_I64, a0, a1);
+        break;
+
     case INDEX_op_mov_i32:  /* Always emitted via tcg_out_mov.  */
     case INDEX_op_mov_i64:
     case INDEX_op_call:     /* Always emitted via tcg_out_call.  */

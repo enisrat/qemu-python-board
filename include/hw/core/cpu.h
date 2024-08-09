@@ -35,6 +35,7 @@
 #include "qemu/queue.h"
 #include "qemu/thread.h"
 #include "qom/object.h"
+#include <coverage.h>
 
 typedef int (*WriteCoreDumpFunction)(const void *buf, size_t size,
                                      void *opaque);
@@ -361,6 +362,7 @@ typedef struct CPUNegativeOffsetState {
 #endif
     IcountDecr icount_decr;
     bool can_do_io;
+    CoverageRecordBuf cov_rec_buf;
 } CPUNegativeOffsetState;
 
 struct KVMState;

@@ -728,10 +728,11 @@ void arm_jump_cc(DisasCompare *cmp, TCGLabel *label)
     tcg_gen_brcondi_i32(cmp->cond, cmp->value, 0, label);
 }
 
-void arm_gen_test_cc(int cc, TCGLabel *label)
+void arm_gen_test_cc(int cc, TCGLabel *label, void (*rec_edge_cb)(DisasCompare *cmp))
 {
     DisasCompare cmp;
     arm_test_cc(&cmp, cc);
+    if(rec_edge_cb) rec_edge_cb(&cmp);  /*EDGE COVERAGE*/
     arm_jump_cc(&cmp, label);
 }
 
@@ -3490,7 +3491,7 @@ static void gen_srs(DisasContext *s,
 static void arm_skip_unless(DisasContext *s, uint32_t cond)
 {
     arm_gen_condlabel(s);
-    arm_gen_test_cc(cond ^ 1, s->condlabel.label);
+    arm_gen_test_cc(cond ^ 1, s->condlabel.label, NULL);
 }
 
 

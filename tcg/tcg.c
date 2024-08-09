@@ -420,6 +420,13 @@ tlb_mask_table_ofs(TCGContext *s, int which)
             sizeof(CPUNegativeOffsetState));
 }
 
+static int __attribute__((unused))
+cov_rec_buf_ofs(TCGContext *s)
+{
+    return (offsetof(CPUNegativeOffsetState, cov_rec_buf) -
+            sizeof(CPUNegativeOffsetState));
+}
+
 /* Signal overflow, starting over with fewer guest insns. */
 static G_NORETURN
 void tcg_raise_tb_overflow(TCGContext *s)

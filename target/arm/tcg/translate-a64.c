@@ -104,6 +104,16 @@ void a64_translate_init(void)
         offsetof(CPUARMState, exclusive_high), "exclusive_high");
 }
 
+/*Record edge of conditional 0|1 branch*/
+void a64_cond_branch_rec_edge(DisasCompare *cmp) {
+    tcg_gen_rec_edge_i64_i32(cpu_pc, cmp->value);
+}
+
+/*Record edge of indirect branch by register*/
+void a64_ind_branch_rec_edge(DisasCompare *cmp) {
+    tcg_gen_rec_edge_i64_i64(cpu_pc, cmp->value);
+}
+
 /*
  * Return the core mmu_idx to use for A64 load/store insns which
  * have a "unprivileged load/store" variant. Those insns access
@@ -1521,6 +1531,7 @@ static void set_btype_for_blr(DisasContext *s)
 
 static bool trans_BR(DisasContext *s, arg_r *a)
 {
+    tcg_gen_rec_edge_i64_i64(cpu_pc, cpu_reg(s, a->rn)); /*EDGE COVERAGE*/
     gen_a64_set_pc(s, cpu_reg(s, a->rn));
     set_btype_for_br(s, a->rn);
     s->base.is_jmp = DISAS_JUMP;
@@ -1537,6 +1548,7 @@ static bool trans_BLR(DisasContext *s, arg_r *a)
         dst = tmp;
     }
     gen_pc_plus_diff(s, lr, curr_insn_len(s));
+    tcg_gen_rec_edge_i64_i64(cpu_pc, dst); /*EDGE COVERAGE*/
     gen_a64_set_pc(s, dst);
     set_btype_for_blr(s);
     s->base.is_jmp = DISAS_JUMP;
@@ -1581,6 +1593,8 @@ static bool trans_BRAZ(DisasContext *s, arg_braz *a)
     }
 
     dst = auth_branch_target(s, cpu_reg(s, a->rn), tcg_constant_i64(0), !a->m);
+    
+    tcg_gen_rec_edge_i64_i64(cpu_pc, dst); /*EDGE COVERAGE*/
     gen_a64_set_pc(s, dst);
     set_btype_for_br(s, a->rn);
     s->base.is_jmp = DISAS_JUMP;

@@ -3345,3 +3345,19 @@ void tcg_gen_lookup_and_goto_ptr(void)
     tcg_gen_op1i(INDEX_op_goto_ptr, tcgv_ptr_arg(ptr));
     tcg_temp_free_ptr(ptr);
 }
+
+
+/*Record an edge of the control flow. 
+@pc should be the pc of current TB and 
+@out_edge_id can be either 0|1 for conditional jumps
+or the target address for indirect jumps.
+
+Combinations of 32/64 are possible, because
+the values should be XORed and hashed anyway*/
+void tcg_gen_rec_edge_i32(TCGv_i32 pc, TCGv_i32 out_edge_id) {
+    tcg_gen_op2(INDEX_op_rec_edge_i32, pc, out_edge_id);
+}
+
+void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id) {
+    tcg_gen_op2(INDEX_op_rec_edge_i64, pc, out_edge_id);
+}
