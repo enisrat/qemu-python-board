@@ -106,12 +106,7 @@ void a64_translate_init(void)
 
 /*Record edge of conditional 0|1 branch*/
 void a64_cond_branch_rec_edge(DisasCompare *cmp) {
-    tcg_gen_rec_edge_i64_i32(cpu_pc, cmp->value);
-}
-
-/*Record edge of indirect branch by register*/
-void a64_ind_branch_rec_edge(DisasCompare *cmp) {
-    tcg_gen_rec_edge_i64_i64(cpu_pc, cmp->value);
+    tcg_gen_rec_edge_i64(cpu_pc, cmp->value);
 }
 
 /*
@@ -1462,6 +1457,7 @@ static bool trans_CBZ(DisasContext *s, arg_cbz *a)
     TCGv_i64 tcg_cmp;
 
     tcg_cmp = read_cpu_reg(s, a->rt, a->sf);
+    tcg_gen_rec_edge_i64(cpu_pc, tcg_cmp);  /* EDGE COVERAGE */
     reset_btype(s);
 
     match = gen_disas_label(s);
@@ -1480,6 +1476,8 @@ static bool trans_TBZ(DisasContext *s, arg_tbz *a)
 
     tcg_cmp = tcg_temp_new_i64();
     tcg_gen_andi_i64(tcg_cmp, cpu_reg(s, a->rt), 1ULL << a->bitpos);
+    tcg_gen_shifti_i64(tcg_cmp, tcg_cmp, a->bitpos, true, false);
+    tcg_gen_rec_edge_i64(cpu_pc, tcg_cmp);  /* EDGE COVERAGE */
 
     reset_btype(s);
 
@@ -1502,7 +1500,7 @@ static bool trans_B_cond(DisasContext *s, arg_B_cond *a)
     if (a->cond < 0x0e) {
         /* genuinely conditional branches */
         DisasLabel match = gen_disas_label(s);
-        arm_gen_test_cc(a->cond, match.label);
+        arm_gen_test_cc(a->cond, match.label, a64_cond_branch_rec_edge);
         gen_goto_tb(s, 0, 4);
         set_disas_label(s, match);
         gen_goto_tb(s, 1, a->imm);
@@ -1641,6 +1639,7 @@ static bool trans_BRA(DisasContext *s, arg_bra *a)
         return false;
     }
     dst = auth_branch_target(s, cpu_reg(s,a->rn), cpu_reg_sp(s, a->rm), !a->m);
+    tcg_gen_rec_edge_i64_i64(cpu_pc, dst); /*EDGE COVERAGE*/
     gen_a64_set_pc(s, dst);
     set_btype_for_br(s, a->rn);
     s->base.is_jmp = DISAS_JUMP;
@@ -8007,7 +8006,7 @@ static void disas_fp_ccomp(DisasContext *s, uint32_t insn)
     if (cond < 0x0e) { /* not always */
         TCGLabel *label_match = gen_new_label();
         label_continue = gen_new_label();
-        arm_gen_test_cc(cond, label_match);
+        arm_gen_test_cc(cond, label_match, a64_cond_branch_rec_edge);
         /* nomatch: */
         gen_set_nzcv(tcg_constant_i64(nzcv << 28));
         tcg_gen_br(label_continue);

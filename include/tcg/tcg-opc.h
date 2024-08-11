@@ -190,12 +190,9 @@ DEF(mulsh_i64, 1, 2, 0, IMPL64 | IMPL(TCG_TARGET_HAS_mulsh_i64))
 
 /*Edge recording for control flow coverage*/
 /*Calculate a hash of a register, in-place*/
-//DEF(fast_hash_i32, 1, 1, 0, 0 )
-//DEF(fast_hash_i64, 1, 1, 0, IMPL64 )
+DEF(fast_hash_i32, 1, 1, 0, 0 )
+DEF(fast_hash_i64, 1, 1, 0, IMPL64 )
 
-
-DEF(rec_edge_i32, 0, 2, 0, 0 )
-DEF(rec_edge_i64, 0, 2, 0, IMPL64 )
 
 #define DATA64_ARGS  (TCG_TARGET_REG_BITS == 64 ? 1 : 2)
 
