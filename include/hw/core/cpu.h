@@ -35,7 +35,7 @@
 #include "qemu/queue.h"
 #include "qemu/thread.h"
 #include "qom/object.h"
-#include <coverage.h>
+#include "exec/coverage.h"
 
 typedef int (*WriteCoreDumpFunction)(const void *buf, size_t size,
                                      void *opaque);

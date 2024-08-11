@@ -19,4 +19,11 @@ void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src);
 void tcg_gen_rec_edge_i32(TCGv_i32 pc, TCGv_i32 out_edge_id);
 void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id);
 
+
+/**
+ * Record matching bytes in COMPARE instructions to guide Fuzzer.
+ */
+void tcg_gen_rec_cmp_i32(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1);
+void tcg_gen_rec_cmp_i64(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1);
+
 #endif /* COVERAGE_TCG_H */

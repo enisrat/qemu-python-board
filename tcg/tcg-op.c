@@ -3348,76 +3348,14 @@ void tcg_gen_lookup_and_goto_ptr(void)
 
 void tcg_gen_fast_hash_i32(TCGv_i32 dst, TCGv_i32 src)
 {
-    tcg_gen_op2(INDEX_op_fast_hash_i32, dst, src);
+    tcg_gen_op2(INDEX_op_fast_hash_i32, tcgv_i32_arg(dst), tcgv_i32_arg(src));
 }
 void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src)
 {
-    tcg_gen_op2(INDEX_op_fast_hash_i64, dst, src);
+    tcg_gen_op2(INDEX_op_fast_hash_i64, tcgv_i32_arg(dst), tcgv_i64_arg(src));
 }
 
-/*Generate compact and fast code for recording the edge information*/
-static void tcg_out_rec_edge(TCGContext *s, TCGType type, TCGReg pc, TCGReg out_edge_id) {
-    /*Actually need SSE4.2 for CRC32*/
-    tcg_debug_assert(have_avx);
-
-    if (type1 == TCG_TYPE_I32) {
-    } else if (type1 == TCG_TYPE_I64) {
-        /* 16 is a compiletime decision. 
-        As most VAs are below 48 bits (4*9+12 for 4stage pagetable), 
-        shifting by 16 should not be a too hard constraint*/
-        tcg_out_mov(s, TCG_TYPE_I64, TCG_REG_L0, pc);
-        tcg_out_shifti(s, SHIFT_SHL, TCG_REG_L0, 16);
-        tgen_arithr(s, ARITH_XOR,  TCG_REG_L0, out_edge_id);
-        /*Now: L0 = (pc<<16) ^ out_edge_id*/
-
-        
-        tcg_out_mov(s, TCG_TYPE_I64, TCG_REG_L1, TCG_AREG0);
-        tgen_arithi(s, ARITH_SUB, TCG_REG_L1, cov_rec_buf_ofs(s)-1);
-        tgen_arithi(s, ARITH_AND, TCG_REG_L0, (1 << EDGE_COVERAGE_RECORD_BUF_BITSHIFT) -1);
-
-        #if EDGE_COVERAGE_RECORD_ELEM_SIZE == 1
-            /*INC byte ptr[cov_rec_buf + L0]*/
-            tcg_out_modrm_offset(s, 0xfe, TCG_REG_L1,0, TCG_REG_L0)
-        #endif
-
-    } else {
-        g_assert_not_reached();
-    }
-}
-
-
-void tcg_gen_concat_i32_i64(TCGv_i64 dest, TCGv_i32 low, TCGv_i32 high)
-{
-    TCGv_i64 tmp;
-
-    if (TCG_TARGET_REG_BITS == 32) {
-        tcg_gen_mov_i32(TCGV_LOW(dest), low);
-        tcg_gen_mov_i32(TCGV_HIGH(dest), high);
-        return;
-    }
-
-    tmp = tcg_temp_ebb_new_i64();
-    /* These extensions are only needed for type correctness.
-       We may be able to do better given target specific information.  */
-    tcg_gen_extu_i32_i64(tmp, high);
-    tcg_gen_extu_i32_i64(dest, low);
-    /* If deposit is available, use it.  Otherwise use the extra
-       knowledge that we have of the zero-extensions above.  */
-    if (TCG_TARGET_HAS_deposit_i64 && TCG_TARGET_deposit_i64_valid(32, 32)) {
-        tcg_gen_deposit_i64(dest, dest, tmp, 32, 32);
-    } else {
-        tcg_gen_shli_i64(tmp, tmp, 32);
-        tcg_gen_or_i64(dest, dest, tmp);
-    }
-    tcg_temp_free_i64(tmp);
-}
-
-static inline cov_rec_buf_ofs()
-{
-    return (offsetof(CPUNegativeOffsetState, cov_rec_buf) -
-            sizeof(CPUNegativeOffsetState));
-}
-
+#if 0
 void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id) {
     TCGv_i64 t0, t1;
 
@@ -3477,4 +3415,4 @@ void tcg_gen_rec_cmp(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1) {
         tcg_gen_st8_i64(tbyte, tindex, cov_rec_buf_ofs());
     }
 }
-
+#endif
