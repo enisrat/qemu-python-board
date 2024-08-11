@@ -2522,7 +2522,7 @@ static void tcg_out_exit_tb(TCGContext *s, uintptr_t a0)
     }
 }
 
-static void tcg_out_fast_hash_i64(TCGContext *s, TCGType type, TCGReg dst, TCGReg src) {
+static void tcg_out_fast_hash_i64(TCGContext *s, TCGReg dst, TCGReg src) {
     /*CRC32 r64,r/m64 (SSE4.2)*/
     tcg_out_modrm(s, 0xf1 | P_SIMDF2 | P_EXT | P_EXT38, dst, src);
 }
@@ -3002,7 +3002,7 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
         tcg_out_mb(s, a0);
         break;
     case INDEX_op_fast_hash_i64:
-        tcg_out_fast_hash_i64(s, TCG_TYPE_I32, a0, a1);
+        tcg_out_fast_hash_i64(s, a0, a1);
         break;
 
     case INDEX_op_mov_i32:  /* Always emitted via tcg_out_mov.  */
@@ -3653,6 +3653,11 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
     case INDEX_op_bitsel_vec:
     case INDEX_op_x86_vpblendvb_vec:
         return C_O1_I3(x, x, x, x);
+
+    case INDEX_op_fast_hash_i32:
+        return C_O1_I1(r, r);
+    case INDEX_op_fast_hash_i64:
+        return C_O1_I1(r, r);
 
     default:
         g_assert_not_reached();
