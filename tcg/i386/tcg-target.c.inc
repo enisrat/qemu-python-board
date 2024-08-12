@@ -2524,7 +2524,11 @@ static void tcg_out_exit_tb(TCGContext *s, uintptr_t a0)
 
 static void tcg_out_fast_hash_i64(TCGContext *s, TCGReg dst, TCGReg src) {
     /*CRC32 r64,r/m64 (SSE4.2)*/
-    tcg_out_modrm(s, 0xf1 | P_SIMDF2 | P_EXT | P_EXT38, dst, src);
+    tcg_out_modrm(s, 0xf1 | P_SIMDF2 | P_EXT | P_EXT38 | P_REXW, dst, src);
+}
+
+static void tcg_out_add_cisc_i64(TCGContext *s, TCGReg base, TCGReg index, tcg_target_long elem_sz, tcg_target_long ofs, tcg_target_long val) {
+    tcg_out_modrm_sib_offset(s, OPC_ADD_R64 + P_REXW, base, index, elem_sz, ofs);
 }
 
 static void tcg_out_goto_tb(TCGContext *s, int which)
@@ -3004,6 +3008,8 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
     case INDEX_op_fast_hash_i64:
         tcg_out_fast_hash_i64(s, a0, a1);
         break;
+    case INDEX_op_add_cisc_i64:
+        tcg_out_add_cisc(s, a0, a1, a2, const_args[0], const_args[1], const_args[2]);
 
     case INDEX_op_mov_i32:  /* Always emitted via tcg_out_mov.  */
     case INDEX_op_mov_i64:
@@ -3658,6 +3664,8 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
         return C_O1_I1(r, r);
     case INDEX_op_fast_hash_i64:
         return C_O1_I1(r, r);
+    case INDEX_op_add_cisc_i32:
+        return C_O1_I1(r, 0, i, i, i);
 
     default:
         g_assert_not_reached();

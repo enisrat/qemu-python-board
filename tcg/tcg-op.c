@@ -3355,6 +3355,53 @@ void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src)
     tcg_gen_op2(INDEX_op_fast_hash_i64, tcgv_i32_arg(dst), tcgv_i64_arg(src));
 }
 
+/**
+ * ADD memory address directly.
+ * Corresponds to x86_64: 
+ * add <byte|word|dword|qword> ptr[a0 + a1*c0 + c1], c2
+ */
+void tcg_gen_add_cisc_i64(TCGv_i64 base, TCGv_i64 index, tcg_target_long elem_sz, tcg_target_long ofs, tcg_target_long val)
+{
+    if(TARGET_HAS_add_cisc_i64) {
+        tcg_gen_op5(INDEX_op_add_cisc_i64, tcgv_i64_arg(base), tcgv_i64_arg(index), 
+                    tcg_constant_i64(elem_sz), tcg_constant_i64(ofs), tcg_constant_i64(val));
+    } else {
+        tcg_debug_assert(elem_sz == 1 || elem_sz == 2 || elem_sz == 4 || elem_sz == 8);
+        TCGv_i64 t0 = tcg_temp_ebb_new_i64();
+        TCGv_i64 t1 = tcg_temp_ebb_new_i64();
+
+        if(elem_sz == 1){
+            tcg_gen_mov_i64(t0, index);
+            tcg_gen_add_i64(t0, t0, base);
+            tcg_gen_ld8u_i64(t1, (TCGv_ptr)t0, ofs);
+            tcg_gen_addi_i64(t1, t1, val);
+            tcg_gen_st8_i64(t1, (TCGv_ptr)t0, ofs);
+        }if (elem_sz == 2){
+            tcg_gen_shli_i64(t0, index, 1);
+            tcg_gen_add_i64(t0, t0, base);
+            tcg_gen_ld16u_i64(t1, (TCGv_ptr)t0, ofs);
+            tcg_gen_addi_i64(t1, t1, val);
+            tcg_gen_st16_i64(t1, (TCGv_ptr)t0, ofs);
+        }if (elem_sz == 4){
+            tcg_gen_shli_i64(t0, index, 2);
+            tcg_gen_add_i64(t0, t0, base);
+            tcg_gen_ld32u_i64(t1, (TCGv_ptr)t0, ofs);
+            tcg_gen_addi_i64(t1, t1, val);
+            tcg_gen_st32_i64(t1, (TCGv_ptr)t0, ofs);
+        }if (elem_sz == 8){
+            tcg_gen_shli_i64(t0, index, 3);
+            tcg_gen_add_i64(t0, t0, base);
+            tcg_gen_ld_i64(t1, (TCGv_ptr)t0, ofs);
+            tcg_gen_addi_i64(t1, t1, val);
+            tcg_gen_st_i64(t1, (TCGv_ptr)t0, ofs);
+        }
+
+        tcg_temp_free_i64(t0);
+        tcg_temp_free_i64(t1);
+    }
+}
+
+
 #if 0
 void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id) {
     TCGv_i64 t0, t1;

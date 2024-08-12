@@ -155,6 +155,8 @@ typedef enum {
 #define TCG_TARGET_HAS_muls2_i32        1
 #define TCG_TARGET_HAS_muluh_i32        0
 #define TCG_TARGET_HAS_mulsh_i32        0
+#define TCG_TARGET_HAS_fast_hash_i32    have_avx1
+#define TCG_TARGET_HAS_add_cisc_i32     1
 
 #if TCG_TARGET_REG_BITS == 64
 /* Keep 32-bit values zero-extended in a register.  */
@@ -191,6 +193,8 @@ typedef enum {
 #define TCG_TARGET_HAS_muluh_i64        0
 #define TCG_TARGET_HAS_mulsh_i64        0
 #define TCG_TARGET_HAS_qemu_st8_i32     0
+#define TCG_TARGET_HAS_fast_hash_i64    have_avx1
+#define TCG_TARGET_HAS_add_cisc_i64     1
 #else
 #define TCG_TARGET_HAS_qemu_st8_i32     1
 #endif
@@ -225,6 +229,7 @@ typedef enum {
 #define TCG_TARGET_HAS_bitsel_vec       have_avx512vl
 #define TCG_TARGET_HAS_cmpsel_vec       -1
 #define TCG_TARGET_HAS_tst_vec          0
+
 
 #define TCG_TARGET_deposit_i32_valid(ofs, len) \
     (((ofs) == 0 && ((len) == 8 || (len) == 16)) || \
