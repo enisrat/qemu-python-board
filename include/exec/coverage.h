@@ -1,35 +1,30 @@
 #ifndef COVERAGE_H
 #define COVERAGE_H
 
+extern size_t edge_coverage_record_elem_size;
+/*edge_coverage_record_size = #elems * elem_sz */
+extern size_t edge_coverage_record_elems;
 
-#define EDGE_COVERAGE_RECORD_BITS 12
-#define EDGE_COVERAGE_RECORD_NUM_ELEMS (1<< EDGE_COVERAGE_RECORD_BITS)
+extern size_t comp_coverage_record_elem_size;
+/*comp_coverage_record_size = #elems * elem_sz */
+extern size_t comp_coverage_record_elems;
 
-#define EDGE_COVERAGE_RECORD_ELEM_SIZE 1
+extern bool coverage_record_enabled;
 
-#if EDGE_COVERAGE_RECORD_ELEM_SIZE == 1
-	typedef uint8_t edge_cov_rec_elem_t;
-#elif EDGE_COVERAGE_RECORD_ELEM_SIZE == 2
-	typedef uint16_t edge_cov_rec_elem_t;
-#endif
+/* Initializes the coverage record buffers based on the sizes (static globals as *extern*) above. */
+void init_coverage_recording(void);
 
-#define EDGE_COVERAGE_RECORD_SIZE (EDGE_COVERAGE_RECORD_NUM_ELEMS * EDGE_COVERAGE_RECORD_ELEM_SIZE)
-
-#define COMP_COVERAGE_RECORD_BITS 10
-#define COMP_COVERAGE_RECORD_NUM_ELEMS (1<< COMP_COVERAGE_RECORD_BITS)
-#define COMP_COVERAGE_RECORD_ELEM_SIZE 1
-
-#if COMP_COVERAGE_RECORD_ELEM_SIZE == 1
-    typedef uint8_t comp_cov_rec_elem_t;
-#elif COMP_COVERAGE_RECORD_ELEM_SIZE == 2
-    typedef uint16_t comp_cov_rec_elem_t;
-#endif
-
-#define COMP_COVERAGE_RECORD_SIZE (COMP_COVERAGE_RECORD_NUM_ELEMS * COMP_COVERAGE_RECORD_ELEM_SIZE)
-
+/**
+ * Each vCPU gets one of these for direct access from TCG target code.
+ */
 typedef struct {
-    edge_cov_rec_elem_t edge_cov_rec_buf[EDGE_COVERAGE_RECORD_SIZE];
-    comp_cov_rec_elem_t comp_cov_rec_buf[COMP_COVERAGE_RECORD_SIZE];
+    /* Should be 0 or 1 */
+    uint32_t edge_coverage_enabled;
+    uint32_t comp_coverage_enabled;
+
+    /* Should be page-aligned for max cache efficiency */
+    void* edge_cov_rec_buf;
+    void* comp_cov_rec_buf;
 
 } CoverageRecordBuf;
 

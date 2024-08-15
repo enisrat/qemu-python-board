@@ -175,6 +175,13 @@ typedef uint64_t TCGRegSet;
 #ifndef TCG_TARGET_HAS_fast_hash_i64
 #define TCG_TARGET_HAS_fast_hash_i64    0
 #endif
+#ifndef TCG_TARGET_HAS_add_cisc_i64
+#define TCG_TARGET_HAS_add_cisc_i64    0
+#endif
+#ifndef TCG_TARGET_HAS_add_cisc_i32
+#define TCG_TARGET_HAS_add_cisc_i32    0
+#endif
+
 
 typedef enum TCGOpcode {
 #define DEF(name, oargs, iargs, cargs, flags) INDEX_op_ ## name,

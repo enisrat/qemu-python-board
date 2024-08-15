@@ -106,7 +106,7 @@ void a64_translate_init(void)
 
 /*Record edge of conditional 0|1 branch*/
 static void a64_cond_branch_rec_edge(DisasCompare *cmp) {
-    tcg_gen_rec_edge_i64(cpu_pc, (TCGv_i64)cmp->value);
+    tcg_gen_rec_edge_i64(cpu_pc, (TCGv_i64)cmp->value, true);
 }
 
 /*
@@ -1457,7 +1457,7 @@ static bool trans_CBZ(DisasContext *s, arg_cbz *a)
     TCGv_i64 tcg_cmp;
 
     tcg_cmp = read_cpu_reg(s, a->rt, a->sf);
-    tcg_gen_rec_edge_i64(cpu_pc, tcg_cmp);  /* EDGE COVERAGE */
+    tcg_gen_rec_edge_i64(cpu_pc, tcg_cmp, true);  /* EDGE COVERAGE */
     reset_btype(s);
 
     match = gen_disas_label(s);
@@ -1477,7 +1477,7 @@ static bool trans_TBZ(DisasContext *s, arg_tbz *a)
     tcg_cmp = tcg_temp_new_i64();
     tcg_gen_andi_i64(tcg_cmp, cpu_reg(s, a->rt), 1ULL << a->bitpos);
     tcg_gen_shri_i64(tcg_cmp, tcg_cmp, a->bitpos);
-    tcg_gen_rec_edge_i64(cpu_pc, tcg_cmp);  /* EDGE COVERAGE */
+    tcg_gen_rec_edge_i64(cpu_pc, tcg_cmp, true);  /* EDGE COVERAGE */
 
     reset_btype(s);
 
@@ -1529,7 +1529,7 @@ static void set_btype_for_blr(DisasContext *s)
 
 static bool trans_BR(DisasContext *s, arg_r *a)
 {
-    tcg_gen_rec_edge_i64(cpu_pc, cpu_reg(s, a->rn)); /*EDGE COVERAGE*/
+    tcg_gen_rec_edge_i64(cpu_pc, cpu_reg(s, a->rn), true); /*EDGE COVERAGE*/
     gen_a64_set_pc(s, cpu_reg(s, a->rn));
     set_btype_for_br(s, a->rn);
     s->base.is_jmp = DISAS_JUMP;
@@ -1546,7 +1546,7 @@ static bool trans_BLR(DisasContext *s, arg_r *a)
         dst = tmp;
     }
     gen_pc_plus_diff(s, lr, curr_insn_len(s));
-    tcg_gen_rec_edge_i64(cpu_pc, dst); /*EDGE COVERAGE*/
+    tcg_gen_rec_edge_i64(cpu_pc, dst, true); /*EDGE COVERAGE*/
     gen_a64_set_pc(s, dst);
     set_btype_for_blr(s);
     s->base.is_jmp = DISAS_JUMP;
@@ -1592,7 +1592,7 @@ static bool trans_BRAZ(DisasContext *s, arg_braz *a)
 
     dst = auth_branch_target(s, cpu_reg(s, a->rn), tcg_constant_i64(0), !a->m);
     
-    tcg_gen_rec_edge_i64(cpu_pc, dst); /*EDGE COVERAGE*/
+    tcg_gen_rec_edge_i64(cpu_pc, dst, true); /*EDGE COVERAGE*/
     gen_a64_set_pc(s, dst);
     set_btype_for_br(s, a->rn);
     s->base.is_jmp = DISAS_JUMP;
@@ -1639,7 +1639,7 @@ static bool trans_BRA(DisasContext *s, arg_bra *a)
         return false;
     }
     dst = auth_branch_target(s, cpu_reg(s,a->rn), cpu_reg_sp(s, a->rm), !a->m);
-    tcg_gen_rec_edge_i64(cpu_pc, dst); /*EDGE COVERAGE*/
+    tcg_gen_rec_edge_i64(cpu_pc, dst, true); /*EDGE COVERAGE*/
     gen_a64_set_pc(s, dst);
     set_btype_for_br(s, a->rn);
     s->base.is_jmp = DISAS_JUMP;
