@@ -12,11 +12,11 @@
  * CISC ADD instruction. Specifically for x86 optimization.
  * Corresponds to: add byte|word|dword|qword ptr [base + index*elem_sz + ofs], val
  */
-void tcg_gen_add_cisc_i64(TCGv_i64 base, TCGv_i64 index, tcg_target_long elem_sz, tcg_target_long ofs, TCGv_i64 val)
+void tcg_gen_add_cisc_i64(TCGv_i64 base, TCGv_i64 index,  TCGv_i64 val, tcg_target_long elem_sz, tcg_target_long ofs)
 {
     if(TCG_TARGET_HAS_add_cisc_i64) {
-        tcg_gen_op5(INDEX_op_add_cisc_i64, tcgv_i64_arg(base), tcgv_i64_arg(index), 
-                    elem_sz, ofs, tcgv_i64_arg(val));
+        tcg_gen_op5(INDEX_op_add_cisc_i64, tcgv_i64_arg(base), tcgv_i64_arg(index), tcgv_i64_arg(val), 
+                    tcgv_i64_arg(tcg_constant_i64(elem_sz)), tcgv_i64_arg(tcg_constant_i64(ofs)));
     } else {
         tcg_debug_assert(elem_sz == 1 || elem_sz == 2 || elem_sz == 4 || elem_sz == 8);
         TCGv_i64 t0 = tcg_temp_ebb_new_i64();
@@ -77,7 +77,7 @@ void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc) {
 
     tcg_gen_andi_i64(hashofs, hashofs, edge_coverage_record_elems -1);
 
-    tcg_gen_add_cisc_i64((TCGv_i64)baseptr, hashofs, edge_coverage_record_elem_size, 0, en);
+    tcg_gen_add_cisc_i64((TCGv_i64)baseptr, hashofs, en, edge_coverage_record_elem_size, 0);
 
     tcg_temp_free_i64(hashofs);
     tcg_temp_free_ptr(baseptr);
@@ -113,7 +113,7 @@ void tcg_gen_rec_cmp_i64(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1, bool discard_pc)
         base = tcg_temp_ebb_new_ptr();
         tcg_gen_ld_ptr(base, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.comp_cov_rec_buf) -
                                             (int) sizeof(CPUNegativeOffsetState)));
-        tcg_gen_add_cisc_i64((TCGv_i64)base, hashofs, comp_coverage_record_elem_size, 0, tbyte);
+        tcg_gen_add_cisc_i64((TCGv_i64)base, hashofs, tbyte, comp_coverage_record_elem_size, 0);
         tcg_temp_free_ptr(base);
 
         tcg_gen_shri_i64(tcmp, tcmp, 8);

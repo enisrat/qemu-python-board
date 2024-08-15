@@ -2244,6 +2244,10 @@ bool tcg_op_supported(TCGOpcode op)
         return TCG_TARGET_HAS_fast_hash_i32;
     case INDEX_op_fast_hash_i64:
         return TCG_TARGET_HAS_fast_hash_i64;
+    case INDEX_op_add_cisc_i32:
+        return TCG_TARGET_HAS_add_cisc_i32;
+    case INDEX_op_add_cisc_i64:
+        return TCG_TARGET_HAS_add_cisc_i64;
 
     default:
         tcg_debug_assert(op > INDEX_op_last_generic && op < NB_OPS);

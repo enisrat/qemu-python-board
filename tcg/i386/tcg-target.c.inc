@@ -2529,7 +2529,7 @@ static void tcg_out_fast_hash_i64(TCGContext *s, TCGReg dst, TCGReg src) {
 
 
 /* add byte|word|dword|qword ptr [base + index*elem_sz + ofs], val*/
-static void tcg_out_add_cisc_i64(TCGContext *s, TCGReg base, TCGReg index, tcg_target_long elem_sz, tcg_target_long ofs, TCGReg val) {
+static void tcg_out_add_cisc_i64(TCGContext *s, TCGReg base, TCGReg index, TCGReg val, tcg_target_long elem_sz, tcg_target_long ofs) {
 
     switch(elem_sz) {
         case 1:
@@ -3684,9 +3684,9 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
     case INDEX_op_fast_hash_i64:
         return C_O1_I1(r, r);
     case INDEX_op_add_cisc_i32:
-        return C_O0_I5(r, r, ci, ci, r);
+        return C_O0_I5(r, r, q, rI, re);
     case INDEX_op_add_cisc_i64:
-        return C_O0_I5(r, r, ci, ci, r);
+        return C_O0_I5(r, r, q, rI, re);
 
 
     default:

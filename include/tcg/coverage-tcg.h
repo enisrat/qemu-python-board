@@ -7,7 +7,7 @@
  * CISC ADD instruction. Specifically for x86 optimization.
  * Corresponds to: ADD byte|word|dword|qword ptr [base + index*elem_sz + ofs], val
  */
-void tcg_gen_add_cisc_i64(TCGv_i64 base, TCGv_i64 index, tcg_target_long elem_sz, tcg_target_long ofs, TCGv_i64 val);
+void tcg_gen_add_cisc_i64(TCGv_i64 base, TCGv_i64 index,  TCGv_i64 val, tcg_target_long elem_sz, tcg_target_long ofs);
 
 
 /**
