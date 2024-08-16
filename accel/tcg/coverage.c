@@ -46,4 +46,46 @@ void init_coverage_recording(void) {
         cpu->neg.coverage_rec.edge_coverage_enabled = 1;
     }
 
+    coverage_record_enabled = true;
+}
+
+void enable_edge_coverage_single_cpu(CoverageRecordBuf* buf) {
+    qatomic_set(&buf->edge_coverage_enabled, 1);
+}
+
+void disable_edge_coverage_single_cpu(CoverageRecordBuf* buf) {
+    qatomic_set(&buf->edge_coverage_enabled, 0);
+}
+void enable_comp_coverage_single_cpu(CoverageRecordBuf* buf) {
+    qatomic_set(&buf->comp_coverage_enabled, 1);
+}
+
+void disable_comp_coverage_single_cpu(CoverageRecordBuf* buf) {
+    qatomic_set(&buf->comp_coverage_enabled, 0);
+}
+void enable_edge_coverage_all_cpus(void){
+    CPUState *cpu;
+    CPU_FOREACH(cpu) {
+        enable_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
+    }
+}
+
+void disable_edge_coverage_all_cpus(void) {
+    CPUState *cpu;
+    CPU_FOREACH(cpu) {
+        disable_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
+    }
+}
+void enable_comp_coverage_all_cpus(void) {
+    CPUState *cpu;
+    CPU_FOREACH(cpu) {
+        enable_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
+    }
+}
+
+void disable_comp_coverage_all_cpus(void) {
+    CPUState *cpu;
+    CPU_FOREACH(cpu) {
+        disable_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
+    }
 }

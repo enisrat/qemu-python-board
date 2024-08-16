@@ -2533,19 +2533,19 @@ static void tcg_out_add_cisc_i64(TCGContext *s, TCGReg base, TCGReg index, TCGRe
 
     switch(elem_sz) {
         case 1:
-            tcg_out_modrm_sib_offset(s, 0 | P_REXB_R, val, base, index, elem_sz, ofs);
+            tcg_out_modrm_sib_offset(s, 0 | P_REXB_R, val, base, index, 0, ofs);
             break;
         case 2:
-            tcg_out_modrm_sib_offset(s, 1 | P_DATA16, val, base, index, elem_sz, ofs);
+            tcg_out_modrm_sib_offset(s, 1 | P_DATA16, val, base, index, 1, ofs);
             break;
         case 4:
-            tcg_out_modrm_sib_offset(s, 1, val, base, index, elem_sz, ofs);
+            tcg_out_modrm_sib_offset(s, 1, val, base, index, 2, ofs);
             break;
         case 8:
-            tcg_out_modrm_sib_offset(s, 1 | P_REXW, val, base, index, elem_sz, ofs);
+            tcg_out_modrm_sib_offset(s, 1 | P_REXW, val, base, index, 3, ofs);
             break;
         default:
-        g_assert_not_reached();
+            g_assert_not_reached();
     }
 }
 
@@ -3684,9 +3684,9 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
     case INDEX_op_fast_hash_i64:
         return C_O1_I1(r, r);
     case INDEX_op_add_cisc_i32:
-        return C_O0_I5(r, r, q, rI, re);
+        return C_O0_I3(r, r, q);
     case INDEX_op_add_cisc_i64:
-        return C_O0_I5(r, r, q, rI, re);
+        return C_O0_I3(r, r, q);
 
 
     default:
