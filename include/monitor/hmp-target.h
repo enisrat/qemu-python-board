@@ -41,6 +41,7 @@ struct MonitorDef {
 #define MD_TLONG 0
 #define MD_I32   1
 
+
 const MonitorDef *target_monitor_defs(void);
 int target_get_monitor_def(CPUState *cs, const char *name, uint64_t *pval);
 
@@ -60,5 +61,13 @@ void hmp_info_registers(Monitor *mon, const QDict *qdict);
 void hmp_gva2gpa(Monitor *mon, const QDict *qdict);
 void hmp_gpa2hva(Monitor *mon, const QDict *qdict);
 void hmp_gpa2hpa(Monitor *mon, const QDict *qdict);
+
+
+void hmp_covrec_dump_edge_buf(Monitor *mon, const QDict *qdict);
+void hmp_covrec_set_edge_enabled(Monitor *mon, const QDict *qdict);
+void hmp_covrec_is_enabled_edge(Monitor *mon, const QDict *qdict);
+void hmp_covrec_dump_comp_buf(Monitor *mon, const QDict *qdict);
+void hmp_covrec_set_comp_enabled(Monitor *mon, const QDict *qdict);
+void hmp_covrec_is_enabled_comp(Monitor *mon, const QDict *qdict);
 
 #endif /* MONITOR_HMP_TARGET_H */

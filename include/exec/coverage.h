@@ -47,4 +47,7 @@ void disable_edge_coverage_all_cpus(void);
 void enable_comp_coverage_all_cpus(void);
 void disable_comp_coverage_all_cpus(void);
 
+void reset_edge_coverage_single_cpu(CoverageRecordBuf* buf);
+void reset_comp_coverage_single_cpu(CoverageRecordBuf* buf);
+
 #endif // COVERAGE_H
