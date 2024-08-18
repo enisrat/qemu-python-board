@@ -1,5 +1,5 @@
 /**
- * Edge Coverage Recording
+ * Coverage Recording for edges (and compare values)
  * 
  * (Needs aligned_alloc)
  */
@@ -13,6 +13,8 @@
 #include "monitor/hmp.h"
 #include "monitor/monitor.h"
 #include "monitor/hmp-target.h"
+#include "qemu/option.h"
+#include "qemu/config-file.h"
 
 /**
 * Globally used parameters. Initialized at beginning, never changed afterward.
@@ -27,7 +29,13 @@ size_t comp_coverage_record_elems = 4096;
 
 bool coverage_record_enabled = false;
 
-void init_coverage_recording(void) {
+int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp) {
+
+    edge_coverage_record_elem_size = qemu_opt_get_number(opts, "edge_elem_sz", 1);
+    edge_coverage_record_elems = qemu_opt_get_number(opts, "edge_elems", 4096);
+
+    comp_coverage_record_elem_size = qemu_opt_get_number(opts, "comp_elem_sz", 1);
+    comp_coverage_record_elems = qemu_opt_get_number(opts, "comp_elems", 4096);
     
     /* buffer sizes need to be powers of 2*/
     assert((edge_coverage_record_elems & (edge_coverage_record_elems - 1)) == 0 );
@@ -49,11 +57,13 @@ void init_coverage_recording(void) {
         reset_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
         cpu->neg.coverage_rec.comp_cov_rec_buf = aligned_alloc(0x1000, comp_coverage_record_elems * comp_coverage_record_elem_size);
         reset_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
-        cpu->neg.coverage_rec.comp_coverage_enabled = 1;
-        cpu->neg.coverage_rec.edge_coverage_enabled = 1;
+        cpu->neg.coverage_rec.comp_coverage_enabled = qemu_opt_get_bool(opts, "comp_enable", false);
+        cpu->neg.coverage_rec.edge_coverage_enabled = qemu_opt_get_bool(opts, "edge_enable", false);
     }
 
     coverage_record_enabled = true;
+
+    return 0;
 }
 
 void enable_edge_coverage_single_cpu(CoverageRecordBuf* buf) {
@@ -243,3 +253,43 @@ void hmp_covrec_is_enabled_comp(Monitor *mon, const QDict *qdict)
     uint8_t is_enabled = qatomic_read(&cpu->neg.coverage_rec.comp_coverage_enabled);
     monitor_printf(mon, "%d\n", is_enabled);
 }
+
+
+//[edge_elem_sz=n][,edge_elems=n][,comp_elem_sz=n][,comp_elems=n][,edge_enable][,comp_enable]
+static QemuOptsList qemu_covrec_opts = {
+    .name = "covrec",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_covrec_opts.head),
+    .implied_opt_name = "covrec",
+    .desc = {
+        {
+            .name = "edge_elem_sz",
+            .type = QEMU_OPT_NUMBER,
+        },
+        {
+            .name = "edge_elems",
+            .type = QEMU_OPT_NUMBER,
+        },
+        {
+            .name = "comp_elem_sz",
+            .type = QEMU_OPT_NUMBER,
+        },
+        {
+            .name = "comp_elems",
+            .type = QEMU_OPT_NUMBER,
+        },
+        {
+            .name = "edge_enable",
+            .type = QEMU_OPT_BOOL,
+        },
+        {
+            .name = "comp_enable",
+            .type = QEMU_OPT_BOOL,
+        },
+        { /* end of list */ }
+    },
+};
+static void covrec_register_config(void)
+{
+    qemu_add_opts(&qemu_covrec_opts);
+}
+opts_init(covrec_register_config);

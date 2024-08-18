@@ -6082,6 +6082,23 @@ SRST
 ERST
 
 
+DEF("covrec", HAS_ARG, QEMU_OPTION_covrec,
+    "-covrec [edge_elem_sz=n][,edge_elems=n][,comp_elem_sz=n][,comp_elems=n][,edge_enable]\n"
+    "               [,comp_enable]\n"
+    "               Coverage Recording options for fuzzing and."
+    "               edge recording and comp (compare) recording are supported."
+    "               Their counter element size (1,2,4 or 8) and their element number can be set."
+    ,QEMU_ARCH_ALL)
+SRST
+``-covrec`` [edge_elem_sz=n][,edge_elems=n][,comp_elem_sz=n][,comp_elems=n][,edge_enable]
+                   [,comp_enable]
+                   Coverage Recording options for fuzzing and.
+                   edge recording and comp (compare) recording are supported.
+                   Their counter element size (1,2,4 or 8) and their element number can be set.
+ERST
+
+
+
 HXCOMM This is the last statement. Insert new options before this line!
 
 #undef DEF

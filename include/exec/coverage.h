@@ -15,16 +15,17 @@ extern size_t comp_coverage_record_elem_size;
 /*comp_coverage_record_size = #elems * elem_sz */
 extern size_t comp_coverage_record_elems;
 
+/* TCG JIT engine will not produce target code for coverage recording if this is false*/
 extern bool coverage_record_enabled;
 
 /* Initializes the coverage record buffers based on the sizes (static globals as *extern*) above. */
-void init_coverage_recording(void);
+int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp);
 
 /**
  * Each vCPU gets one of these for direct access from TCG target code.
  */
 typedef struct {
-    /* Should be 0 or 1 */
+    /* Should be 0 or 1. Atomic Writes, Read by TCG target code */
     uint32_t edge_coverage_enabled;
     uint32_t comp_coverage_enabled;
 
