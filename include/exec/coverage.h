@@ -4,6 +4,9 @@
 /* Max size of the temporary linear buffer for recording hashes of edges */
 #define COVERAGE_TEMP_BUF_SZ (1<<24)
 
+/* Linear buffer size threshold to flush */
+#define COVERAGE_TEMP_BUF_TRANSFER_THRESHOLD (1<<11)
+
 /**
  * These global parameters should NOT be changed after initialization (init_coverage_recording).
  * The reason is that the values are used in TCG target code and should not be changed at runtime.

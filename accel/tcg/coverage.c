@@ -93,8 +93,10 @@ void transfer_temp_buf_to_hitmap(RecordValuesTempBuf *buf, uint32_t mask, void *
 
 void transfer_covrec_temp_bufs_to_hitmaps(CoverageRecordBuf* buf) {
 
-    uint32_t mask = edge_coverage_record_elems-1;
-    transfer_temp_buf_to_hitmap(&buf->edge_temp_buf, mask, buf->edge_cov_hitmap, &edge_temp_buf_max_size_seen);
+    if( buf->edge_temp_buf.next - buf->edge_temp_buf.start > COVERAGE_TEMP_BUF_TRANSFER_THRESHOLD )  {
+        uint32_t mask = edge_coverage_record_elems-1;
+        transfer_temp_buf_to_hitmap(&buf->edge_temp_buf, mask, buf->edge_cov_hitmap, &edge_temp_buf_max_size_seen);
+    }
 }
 
 void enable_edge_coverage_single_cpu(CoverageRecordBuf* buf) {
@@ -202,7 +204,8 @@ void hmp_covrec_dump_edge_tmp_buf(Monitor *mon, const QDict *qdict)
     }
 
     size_t num = cpu->neg.coverage_rec.edge_temp_buf.next - cpu->neg.coverage_rec.edge_temp_buf.start;
-    monitor_printf(mon, "%lu entries\n", num);
+    monitor_printf(mon, "%lu current entries\n", num);
+    monitor_printf(mon, "%lu max entries ever\n", edge_temp_buf_max_size_seen);
     monitor_dump(mon, cpu->neg.coverage_rec.edge_temp_buf.start, num, sizeof(uint32_t));
 }
 

@@ -1877,6 +1877,18 @@ SRST
 ERST
 
     {
+        .name       = "covrec_dump_edge_tmp_buf",
+        .args_type  = "cpu:i",
+        .params     = "cpu",
+        .help       = "Dump edge temp buffer of vCPU",
+        .cmd        = hmp_covrec_dump_edge_tmp_buf,
+    },
+
+SRST
+``covrec_dump_edge_tmp_buf`` *cpu*
+ERST
+
+    {
         .name       = "covrec_dump_comp_buf",
         .args_type  = "cpu:i",
         .params     = "cpu",
