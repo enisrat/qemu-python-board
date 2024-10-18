@@ -1021,6 +1021,8 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
 
             cpu_loop_exec_tb(cpu, tb, pc, &last_tb, &tb_exit);
 
+            transfer_covrec_temp_bufs_to_hitmaps(&cpu->neg.coverage_rec);
+
             /* Try to align the host and virtual clocks
                if the guest is in advance */
             align_clocks(sc, cpu);

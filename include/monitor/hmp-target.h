@@ -64,6 +64,7 @@ void hmp_gpa2hpa(Monitor *mon, const QDict *qdict);
 
 
 void hmp_covrec_dump_edge_buf(Monitor *mon, const QDict *qdict);
+void hmp_covrec_dump_edge_tmp_buf(Monitor *mon, const QDict *qdict);
 void hmp_covrec_set_edge_enabled(Monitor *mon, const QDict *qdict);
 void hmp_covrec_is_enabled_edge(Monitor *mon, const QDict *qdict);
 void hmp_covrec_dump_comp_buf(Monitor *mon, const QDict *qdict);

@@ -53,14 +53,13 @@ void tcg_gen_add_cisc_i64(TCGv_i64 base, TCGv_i64 index,  TCGv_i64 val, tcg_targ
 }
 
 /**
- * Generate minimal code to set:
- * vCPU...edge_cov_rec_buf[ CRC32(pc|out_edge_id) ] += 1
+ * Generate minimal code to record Hash(edge)
  */
 void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc) {
     if(coverage_record_enabled) {
 
         TCGv_i64 hashofs = tcg_temp_ebb_new_i64();
-        TCGv_ptr baseptr = tcg_temp_ebb_new_ptr();
+        TCGv_ptr addr_to = tcg_temp_ebb_new_ptr();
         TCGv_i64 en = tcg_temp_ebb_new_i64();
 
         /* 15 was chosen because most VAs should be smaller than 64-15 bits*/
@@ -70,17 +69,19 @@ void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc) {
         tcg_gen_xor_i64(hashofs, hashofs, out_edge_id);
         tcg_gen_fast_hash_i64((TCGv_i32)hashofs, hashofs);
 
-        tcg_gen_ld_ptr(baseptr, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_cov_rec_buf) -
+        tcg_gen_ld_ptr(addr_to, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_temp_buf.next) -
                                             (int) sizeof(CPUNegativeOffsetState)));
         tcg_gen_ld_i32((TCGv_i32)en, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_coverage_enabled) -
                                             (int) sizeof(CPUNegativeOffsetState)));
 
-        tcg_gen_andi_i64(hashofs, hashofs, edge_coverage_record_elems -1);
-
-        tcg_gen_add_cisc_i64((TCGv_i64)baseptr, hashofs, en, edge_coverage_record_elem_size, 0);
+        tcg_gen_st_i32((TCGv_i32)hashofs, addr_to, 0);
+        /* if enabled, increment the "next" pointer. If not enabled, en=0 and the "next" pointer does not change */
+        tcg_gen_add_ptr(addr_to, addr_to, (TCGv_ptr) en);  
+        tcg_gen_st_ptr(addr_to, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_temp_buf.next) -
+                                            (int) sizeof(CPUNegativeOffsetState)));
 
         tcg_temp_free_i64(hashofs);
-        tcg_temp_free_ptr(baseptr);
+        tcg_temp_free_ptr(addr_to);
         tcg_temp_free_i64(en);
     }
 }
@@ -113,7 +114,7 @@ void tcg_gen_rec_cmp_i64(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1, bool discard_pc)
             tcg_temp_free_i64(en);
 
             base = tcg_temp_ebb_new_ptr();
-            tcg_gen_ld_ptr(base, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.comp_cov_rec_buf) -
+            tcg_gen_ld_ptr(base, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_temp_buf.next) -
                                                 (int) sizeof(CPUNegativeOffsetState)));
             tcg_gen_add_cisc_i64((TCGv_i64)base, hashofs, tbyte, comp_coverage_record_elem_size, 0);
             tcg_temp_free_ptr(base);

@@ -27,6 +27,9 @@ size_t comp_coverage_record_elem_size = 1;
 /*comp_coverage_record_size = #elems * elem_sz */
 size_t comp_coverage_record_elems = 4096;
 
+size_t edge_temp_buf_max_size_seen;
+size_t comp_temp_buf_max_size_seen;
+
 bool coverage_record_enabled = false;
 
 int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp) {
@@ -53,28 +56,56 @@ int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp) {
     CPUState *cpu;
     /* all CPUs have same coverage params*/
     CPU_FOREACH(cpu) {
-        cpu->neg.coverage_rec.edge_cov_rec_buf = aligned_alloc(0x1000, edge_coverage_record_elems * edge_coverage_record_elem_size);
-        reset_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
-        cpu->neg.coverage_rec.comp_cov_rec_buf = aligned_alloc(0x1000, comp_coverage_record_elems * comp_coverage_record_elem_size);
-        reset_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
-        cpu->neg.coverage_rec.comp_coverage_enabled = qemu_opt_get_bool(opts, "comp_enable", false);
-        cpu->neg.coverage_rec.edge_coverage_enabled = qemu_opt_get_bool(opts, "edge_enable", false);
+        cpu->neg.coverage_rec.edge_temp_buf.start = malloc(COVERAGE_TEMP_BUF_SZ);
+        cpu->neg.coverage_rec.edge_temp_buf.next = cpu->neg.coverage_rec.edge_temp_buf.start;
+        cpu->neg.coverage_rec.comp_temp_buf.start = malloc(COVERAGE_TEMP_BUF_SZ);
+        cpu->neg.coverage_rec.comp_temp_buf.next = cpu->neg.coverage_rec.comp_temp_buf.start;
+
+        if( qemu_opt_get_bool(opts, "comp_enable", false) )
+            enable_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
+        if( qemu_opt_get_bool(opts, "edge_enable", false) )
+            enable_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
+
+        //CUT
+        cpu->neg.coverage_rec.edge_cov_hitmap = malloc(edge_coverage_record_elems * sizeof(uint8_t));
+        //CUTEND
     }
+
+    edge_temp_buf_max_size_seen = 0;
+    comp_temp_buf_max_size_seen = 0;
 
     coverage_record_enabled = true;
 
     return 0;
 }
 
+void transfer_temp_buf_to_hitmap(RecordValuesTempBuf *buf, uint32_t mask, void *hitmap, size_t *max) {
+    uint32_t *pos = buf->start;
+    while (pos < buf->next) {
+        uint32_t hash = *pos;
+        hash &= mask;
+        ((uint8_t*)hitmap)[hash]++;
+        pos++;
+    }
+    if(buf->next - buf->start > *max) *max = buf->next - buf->start;
+    buf->next = buf->start;
+}
+
+void transfer_covrec_temp_bufs_to_hitmaps(CoverageRecordBuf* buf) {
+
+    uint32_t mask = edge_coverage_record_elems-1;
+    transfer_temp_buf_to_hitmap(&buf->edge_temp_buf, mask, buf->edge_cov_hitmap, &edge_temp_buf_max_size_seen);
+}
+
 void enable_edge_coverage_single_cpu(CoverageRecordBuf* buf) {
-    qatomic_set(&buf->edge_coverage_enabled, 1);
+    qatomic_set(&buf->edge_coverage_enabled, sizeof(uint32_t));
 }
 
 void disable_edge_coverage_single_cpu(CoverageRecordBuf* buf) {
     qatomic_set(&buf->edge_coverage_enabled, 0);
 }
 void enable_comp_coverage_single_cpu(CoverageRecordBuf* buf) {
-    qatomic_set(&buf->comp_coverage_enabled, 1);
+    qatomic_set(&buf->comp_coverage_enabled, sizeof(uint32_t));
 }
 
 void disable_comp_coverage_single_cpu(CoverageRecordBuf* buf) {
@@ -106,14 +137,6 @@ void disable_comp_coverage_all_cpus(void) {
         disable_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
     }
 }
-
-void reset_edge_coverage_single_cpu(CoverageRecordBuf* buf) {
-    memset(buf->edge_cov_rec_buf, 0, edge_coverage_record_elems * comp_coverage_record_elem_size);
-}
-void reset_comp_coverage_single_cpu(CoverageRecordBuf* buf) {
-    memset(buf->comp_cov_rec_buf, 0, comp_coverage_record_elems * comp_coverage_record_elem_size);
-}
-
 
 static void monitor_dump(Monitor *mon, void *where, int count, int wsize) 
 {
@@ -162,7 +185,25 @@ void hmp_covrec_dump_edge_buf(Monitor *mon, const QDict *qdict)
         return;
     }
 
-    monitor_dump(mon, cpu->neg.coverage_rec.edge_cov_rec_buf, edge_coverage_record_elems, edge_coverage_record_elem_size);
+    monitor_dump(mon, cpu->neg.coverage_rec.edge_cov_hitmap, edge_coverage_record_elems, edge_coverage_record_elem_size);
+}
+
+void hmp_covrec_dump_edge_tmp_buf(Monitor *mon, const QDict *qdict)
+{
+    Error *err = NULL;
+    int cpui = qdict_get_int(qdict, "cpu");
+
+    CPUState* cpu = qemu_get_cpu(cpui);
+
+    if (!cpu) {
+        error_setg(&err, "CPU %d not found", cpui);
+        hmp_handle_error(mon, err);
+        return;
+    }
+
+    size_t num = cpu->neg.coverage_rec.edge_temp_buf.next - cpu->neg.coverage_rec.edge_temp_buf.start;
+    monitor_printf(mon, "%lu entries\n", num);
+    monitor_dump(mon, cpu->neg.coverage_rec.edge_temp_buf.start, num, sizeof(uint32_t));
 }
 
 void hmp_covrec_dump_comp_buf(Monitor *mon, const QDict *qdict)
@@ -178,7 +219,7 @@ void hmp_covrec_dump_comp_buf(Monitor *mon, const QDict *qdict)
         return;
     }
 
-    monitor_dump(mon, cpu->neg.coverage_rec.comp_cov_rec_buf, comp_coverage_record_elems, comp_coverage_record_elem_size);
+    monitor_dump(mon, cpu->neg.coverage_rec.comp_cov_hitmap, comp_coverage_record_elems, comp_coverage_record_elem_size);
 }
 
 void hmp_covrec_set_edge_enabled(Monitor *mon, const QDict *qdict)
