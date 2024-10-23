@@ -362,7 +362,7 @@ typedef struct CPUNegativeOffsetState {
 #endif
     IcountDecr icount_decr;
     bool can_do_io;
-    CoverageRecordBuf coverage_rec;
+    CoverageRecordBufs coverage_rec;
 } CPUNegativeOffsetState;
 
 struct KVMState;

@@ -18,8 +18,8 @@ void tcg_gen_add_cisc_i64(TCGv_i64 base, TCGv_i64 index,  TCGv_i64 val, tcg_targ
         tcg_gen_op5(INDEX_op_add_cisc_i64, tcgv_i64_arg(base), tcgv_i64_arg(index), tcgv_i64_arg(val), elem_sz, ofs);
     } else {
         tcg_debug_assert(elem_sz == 1 || elem_sz == 2 || elem_sz == 4 || elem_sz == 8);
-        TCGv_i64 t0 = tcg_temp_ebb_new_i64();
-        TCGv_i64 t1 = tcg_temp_ebb_new_i64();
+        TCGv_i64 t0 = tcg_temp_new_i64();
+        TCGv_i64 t1 = tcg_temp_new_i64();
 
         if(elem_sz == 1){
             tcg_gen_mov_i64(t0, index);
@@ -54,75 +54,92 @@ void tcg_gen_add_cisc_i64(TCGv_i64 base, TCGv_i64 index,  TCGv_i64 val, tcg_targ
 
 /**
  * Generate minimal code to set:
- * vCPU...edge_cov_rec_buf[ CRC32(pc|out_edge_id) ] += 1
+ * vCPU...edge hitmap[ CRC32(pc|out_edge_id) ] += 1
  */
 void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc) {
     if(coverage_record_enabled) {
 
-        TCGv_i64 hashofs = tcg_temp_ebb_new_i64();
-        TCGv_ptr baseptr = tcg_temp_ebb_new_ptr();
-        TCGv_i64 en = tcg_temp_ebb_new_i64();
-
-        /* 15 was chosen because most VAs should be smaller than 64-15 bits*/
-        tcg_gen_shli_i64(hashofs, pc, 15);
+        TCGv_i64 hashofs = tcg_temp_new_i64();
+        tcg_gen_fast_hash_i64((TCGv_i32)hashofs, out_edge_id, pc); 
         if(discard_pc)
             tcg_gen_discard_i64(pc);
-        tcg_gen_xor_i64(hashofs, hashofs, out_edge_id);
-        tcg_gen_fast_hash_i64((TCGv_i32)hashofs, hashofs);
 
-        tcg_gen_ld_ptr(baseptr, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_cov_rec_buf) -
+        TCGv_ptr baseptr = tcg_temp_new_ptr();
+        tcg_gen_ld_ptr(baseptr, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_rec.rec_buf_hitmap) -
                                             (int) sizeof(CPUNegativeOffsetState)));
-        tcg_gen_ld_i32((TCGv_i32)en, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_coverage_enabled) -
+        TCGv_i64 mask = tcg_temp_new_i64();
+        tcg_gen_ld_i32((TCGv_i32)mask, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_rec.mask) -
                                             (int) sizeof(CPUNegativeOffsetState)));
 
-        tcg_gen_andi_i64(hashofs, hashofs, edge_coverage_record_elems -1);
+        tcg_gen_and_i64(hashofs, hashofs, mask);
+        if(edge_coverage_record_elem_size == 2) {
+            tcg_gen_shl_i32(hashofs, hashofs, 1);
+        } else if(edge_coverage_record_elem_size == 4) {
+            tcg_gen_shl_i32(hashofs, hashofs, 2);
+        }
+        tcg_gen_add_i64(baseptr, baseptr, hashofs);
 
-        tcg_gen_add_cisc_i64((TCGv_i64)baseptr, hashofs, en, edge_coverage_record_elem_size, 0);
+        assert(edge_coverage_record_elem_size  == 1); //@TODO fix for other sizes
+        //inc [baseptr]
+        TCGv_i64 ctr = tcg_temp_new_i64();
+        tcg_gen_ld8u_i64(ctr, baseptr, 0);
+        tcg_gen_add_i64(ctr, ctr, tcg_constant_i64(1));
+        tcg_gen_st8_i64(ctr, baseptr, 0);
 
+        /*
         tcg_temp_free_i64(hashofs);
         tcg_temp_free_ptr(baseptr);
-        tcg_temp_free_i64(en);
+        tcg_temp_free_i64(mask);*/
     }
 }
 
 void tcg_gen_rec_cmp_i64(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1, bool discard_pc) {
     if(coverage_record_enabled) {
 
-        TCGv_i64 tcmp = tcg_temp_ebb_new_i64();
-        TCGv_i64 tbyte = tcg_temp_ebb_new_i64();
-        TCGv_i64 en;
-        TCGv_ptr base;
-        TCGv_i64 hashofs = tcg_temp_ebb_new_i64();
+        TCGv_i64 tcmp = tcg_temp_new_i64();
+        TCGv_i64 tbyte = tcg_temp_new_i64();
+        TCGv_i64 mask = tcg_temp_new_i64();
+        TCGv_ptr base = tcg_temp_new_ptr();
+        TCGv_i64 hashofs = tcg_temp_new_i64();
 
-        tcg_gen_fast_hash_i64((TCGv_i32)hashofs, pc);
+        tcg_gen_mov_i64(hashofs, tcg_constant_i64(0));
+        tcg_gen_fast_hash_i64((TCGv_i32)hashofs, hashofs, pc);
         if(discard_pc)
             tcg_gen_discard_i64(pc);
 
         tcg_gen_xor_i64(tcmp, a0, a1);
 
-        tcg_gen_andi_i64(hashofs, hashofs, comp_coverage_record_elems -1);
-        
+        tcg_gen_ld_ptr(base, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.comp_rec.rec_buf_hitmap) -
+                                            (int) sizeof(CPUNegativeOffsetState)));
+        tcg_gen_ld_i32((TCGv_i32)mask, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.comp_rec.mask) -
+                                            (int) sizeof(CPUNegativeOffsetState)));
+
+        tcg_gen_and_i64(hashofs, hashofs, mask);
+        if(edge_coverage_record_elem_size == 2) {
+            tcg_gen_shl_i32(hashofs, hashofs, 1);
+        } else if(edge_coverage_record_elem_size == 4) {
+            tcg_gen_shl_i32(hashofs, hashofs, 2);
+        }
+
+        tcg_gen_add_i64(base, base, hashofs);
+        TCGv_i64 ctr = tcg_temp_new_i64();
+
         for(int i=0; i<8; i++){
             tcg_gen_extract_i64(tbyte, tcmp, 0, 8);
             tcg_gen_setcondi_i64(TCG_COND_EQ, tbyte, tbyte, 0);
 
-            en = tcg_temp_ebb_new_i64();
-            tcg_gen_ld_i32((TCGv_i32)en, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.comp_coverage_enabled) -
-                                                (int) sizeof(CPUNegativeOffsetState)));
-            tcg_gen_and_i64(tbyte, tbyte, en);
-            tcg_temp_free_i64(en);
-
-            base = tcg_temp_ebb_new_ptr();
-            tcg_gen_ld_ptr(base, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.comp_cov_rec_buf) -
-                                                (int) sizeof(CPUNegativeOffsetState)));
-            tcg_gen_add_cisc_i64((TCGv_i64)base, hashofs, tbyte, comp_coverage_record_elem_size, 0);
-            tcg_temp_free_ptr(base);
+            assert(comp_coverage_record_elem_size  == 1); //@TODO fix for other sizes
+            
+            //add [base], tbyte
+            tcg_gen_ld8u_i64(ctr, base, 0);
+            tcg_gen_add_i64(ctr, ctr, tbyte);
+            tcg_gen_st8_i64(ctr, base, 0);
 
             tcg_gen_shri_i64(tcmp, tcmp, 8);
         }
 
-        tcg_temp_free_i64(tcmp);
+        /*tcg_temp_free_i64(tcmp);
         tcg_temp_free_i64(tbyte);
-        tcg_temp_free_i64(hashofs);
+        tcg_temp_free_i64(hashofs);*/
     }
 }

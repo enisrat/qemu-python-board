@@ -2522,9 +2522,11 @@ static void tcg_out_exit_tb(TCGContext *s, uintptr_t a0)
     }
 }
 
-static void tcg_out_fast_hash_i64(TCGContext *s, TCGReg dst, TCGReg src) {
+static void tcg_out_fast_hash_i64(TCGContext *s, TCGReg dst, TCGReg src1, TCGReg src2) {
+    tcg_out_mov(s, TCG_TYPE_I32, dst, src1);
+    tcg_debug_assert( dst != src2 );
     /*CRC32 r64,r/m64 (SSE4.2)*/
-    tcg_out_modrm(s, 0xf1 | P_SIMDF2 | P_EXT | P_EXT38 | P_REXW, dst, src);
+    tcg_out_modrm(s, 0xf1 | P_SIMDF2 | P_EXT | P_EXT38 | P_REXW, dst, src2);
 }
 
 
@@ -3024,7 +3026,7 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
         tcg_out_mb(s, a0);
         break;
     case INDEX_op_fast_hash_i64:
-        tcg_out_fast_hash_i64(s, a0, a1);
+        tcg_out_fast_hash_i64(s, a0, a1, a2);
         break;
     case INDEX_op_add_cisc_i64:
         tcg_out_add_cisc_i64(s, args[0], args[1], args[2], args[3], args[4]);
@@ -3680,9 +3682,9 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
         return C_O1_I3(x, x, x, x);
 
     case INDEX_op_fast_hash_i32:
-        return C_O1_I1(r, r);
+        return C_N1_I2(r, r, r);
     case INDEX_op_fast_hash_i64:
-        return C_O1_I1(r, r);
+        return C_N1_I2(r, r, r);
     case INDEX_op_add_cisc_i32:
         return C_O0_I3(r, r, q);
     case INDEX_op_add_cisc_i64:

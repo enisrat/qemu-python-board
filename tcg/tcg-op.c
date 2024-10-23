@@ -3346,13 +3346,13 @@ void tcg_gen_lookup_and_goto_ptr(void)
     tcg_temp_free_ptr(ptr);
 }
 
-void tcg_gen_fast_hash_i32(TCGv_i32 dst, TCGv_i32 src)
+void tcg_gen_fast_hash_i32(TCGv_i32 dst, TCGv_i32 src, TCGv_i32 src2)
 {
-    tcg_gen_op2(INDEX_op_fast_hash_i32, tcgv_i32_arg(dst), tcgv_i32_arg(src));
+    tcg_gen_op3(INDEX_op_fast_hash_i32, tcgv_i32_arg(dst), tcgv_i32_arg(src), tcgv_i32_arg(src2));
 }
-void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src)
+void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src, TCGv_i64 src2)
 {
-    tcg_gen_op2(INDEX_op_fast_hash_i64, tcgv_i32_arg(dst), tcgv_i64_arg(src));
+    tcg_gen_op3(INDEX_op_fast_hash_i64, tcgv_i32_arg(dst), tcgv_i64_arg(src), tcgv_i64_arg(src2));
 }
 
 
