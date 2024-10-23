@@ -115,9 +115,9 @@ void tcg_gen_rec_cmp_i64(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1, bool discard_pc)
                                             (int) sizeof(CPUNegativeOffsetState)));
 
         tcg_gen_and_i64(hashofs, hashofs, mask);
-        if(edge_coverage_record_elem_size == 2) {
+        if(comp_coverage_record_elem_size == 2) {
             tcg_gen_shl_i32(hashofs, hashofs, 1);
-        } else if(edge_coverage_record_elem_size == 4) {
+        } else if(comp_coverage_record_elem_size == 4) {
             tcg_gen_shl_i32(hashofs, hashofs, 2);
         }
 
