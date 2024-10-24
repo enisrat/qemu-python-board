@@ -13,7 +13,8 @@ tcg_ss.add(files(
   'tcg-op-ldst.c',
   'tcg-op-gvec.c',
   'tcg-op-vec.c',
-  'coverage-tcg-op.c'
+  'coverage-tcg-op.c',
+  'coverage-tcg-helper.c',
 ))
 
 if get_option('tcg_interpreter')
