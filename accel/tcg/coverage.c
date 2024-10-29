@@ -27,7 +27,8 @@ size_t comp_coverage_record_elem_size = 1;
 /*comp_coverage_record_size = #elems * elem_sz */
 size_t comp_coverage_record_elems = 4096;
 
-bool coverage_record_enabled = false;
+bool edge_coverage_record_enabled = false;
+bool comp_coverage_record_enabled = false;
 
 int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp) {
 
@@ -59,13 +60,13 @@ int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp) {
         reset_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
         if( qemu_opt_get_bool(opts, "comp_enable", false) ){
             enable_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
+            comp_coverage_record_enabled = true;
         }
         if( qemu_opt_get_bool(opts, "edge_enable", false) ){
             enable_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
+            edge_coverage_record_enabled = true;
         }
     }
-
-    coverage_record_enabled = true;
 
     return 0;
 }

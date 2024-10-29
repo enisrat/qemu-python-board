@@ -15,8 +15,11 @@ extern size_t comp_coverage_record_elem_size;
 /*comp_coverage_record_size = #elems * elem_sz */
 extern size_t comp_coverage_record_elems;
 
-/* TCG JIT engine will not produce target code for coverage recording if this is false*/
-extern bool coverage_record_enabled;
+/** TCG JIT engine will not produce target code for coverage recording if this is false
+ * Should be set only once at initialization time.
+*/
+extern bool edge_coverage_record_enabled;
+extern bool comp_coverage_record_enabled;
 
 /* Initializes the coverage record buffers based on the sizes (static globals as *extern*) above. */
 int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp);

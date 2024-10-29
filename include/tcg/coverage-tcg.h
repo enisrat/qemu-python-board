@@ -5,7 +5,7 @@
 #include "tcg/coverage-tcg-helper-gen.h"
 
 static inline void gen_helper_record_cmp_i64(TCGv_ptr env, TCGv_i64 pc_diff, TCGv_i64 a1, TCGv_i64 a2) {
-	if( coverage_record_enabled ) {
+	if( comp_coverage_record_enabled ) {
 		if( comp_coverage_record_elem_size == 1) {
 			gen_helper_record_cmp_i64_u8(env, pc_diff, a1, a2);
 		} else if( comp_coverage_record_elem_size == 2) {

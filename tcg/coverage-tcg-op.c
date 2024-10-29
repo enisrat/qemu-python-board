@@ -13,7 +13,7 @@
  * vCPU...edge hitmap[ CRC32(pc|out_edge_id) ] += 1
  */
 void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc) {
-    if(coverage_record_enabled) {
+    if(edge_coverage_record_enabled) {
 
         TCGv_i64 hashofs = tcg_temp_new_i64();
         tcg_gen_fast_hash_i64((TCGv_i32)hashofs, out_edge_id, pc); 
@@ -60,7 +60,7 @@ void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc) {
  * @param discard_pc 
  */
 void tcg_gen_rec_cmp_i64(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1, bool discard_pc) {
-    if(coverage_record_enabled) {
+    if(edge_coverage_record_enabled) {
 
         TCGv_i64 tcmp = tcg_temp_new_i64();
         TCGv_i64 tbyte = tcg_temp_new_i64();

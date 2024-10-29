@@ -14,9 +14,9 @@
  #include <x86intrin.h>
 #endif
 
-static inline int crc32_i64(uint64_t in) {
+static inline uint32_t crc32_i64(uint64_t in) {
 #if (defined(__x86_64__) || defined(__i386__))
- 	return _mm_crc32_u64(0, in);
+ 	return (uint32_t)_mm_crc32_u64(0, in);
 #endif
 }
 
@@ -35,8 +35,8 @@ static inline int get_same_bytes_i64(uint64_t a1, uint64_t a2) {
  * @brief Get index for the CMP Coverage hitmap from the CPU state and the JIT-compiletime pc_diff.
  * 
  */
-static inline int get_index_i64(CPUState *cpu, uint64_t pc_diff) {
-	return crc32_i64( cpu->cc->get_pc(cpu) + pc_diff ) & (1-cpu->neg.coverage_rec.comp_rec.mask);
+static inline uint32_t get_index_i64(CPUState *cpu, uint64_t pc_diff) {
+	return crc32_i64( cpu->cc->get_pc(cpu) + pc_diff ) & cpu->neg.coverage_rec.comp_rec.mask;
 }
 
 /**
