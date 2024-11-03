@@ -46,8 +46,6 @@ enum a64_shift_type {
     A64_SHIFT_TYPE_ROR = 3
 };
 
-static DisasContext *current_disasctx=0; /* shadow-argument For CMP COVERAGE Recording (yes, hacky but can touch less code) */
-
 /*
  * Helpers for extracting complex instruction fields
  */
@@ -834,7 +832,8 @@ static void gen_sub64_CC(TCGv_i64 dest, TCGv_i64 t0, TCGv_i64 t1)
 {
 
     /* CMP COVERAGE Recording */
-    gen_helper_record_cmp_i64(tcg_env, tcg_constant_i64(current_disasctx->pc_curr - current_disasctx->pc_save), t0, t1); 
+    DisasContext *s = current_disasctx;
+    gen_helper_record_cmp_i64(tcg_env, tcg_constant_i64(s->pc_curr - s->pc_save), t0, t1); 
 
     /* 64 bit arithmetic */
     TCGv_i64 result, flag, tmp;

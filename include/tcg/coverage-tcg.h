@@ -4,6 +4,10 @@
 #include "tcg/tcg.h"
 #include "tcg/coverage-tcg-helper-gen.h"
 
+/* shadow-argument of the struct DisasContext used by the guest code translator.
+ * Need this for CMP COVERAGE Recording, because this disas ctx is not always available as a function argument when needed */
+extern __thread void *current_disasctx; 
+
 static inline void gen_helper_record_cmp_i64(TCGv_ptr env, TCGv_i64 pc_diff, TCGv_i64 a1, TCGv_i64 a2) {
 	if( comp_coverage_record_enabled ) {
 		if( comp_coverage_record_elem_size == 1) {
