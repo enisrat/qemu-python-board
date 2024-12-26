@@ -1,5 +1,5 @@
 /**
- * Skeleton of a SysBusDevice. 
+ * Skeleton of a SysBusDevice that compiles.
  * It allows for convenient and fast prototyping using Copy&Paste, Find&Replace + Coding LLMs
  */
 

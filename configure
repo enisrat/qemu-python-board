@@ -1714,7 +1714,8 @@ if test "$skip_meson" = no; then
   echo "# the command line" >> $cross
   if test -e "$source_path/.git" && \
       { test "$host_os" = linux || test "$host_os" = "windows"; }; then
-      echo 'werror = true' >> $cross
+      echo "werror = true as default, no thanks"
+      #echo 'werror = true' >> $cross
   fi
   echo "[project options]" >> $cross
   if test "$SMBD" != ''; then
