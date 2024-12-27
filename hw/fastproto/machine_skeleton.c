@@ -13,7 +13,7 @@
 #include "hw/sysbus.h"
 #include "hw/loader.h"
 #include "qemu/datadir.h"
-
+#include "exec/memory.h"
 
 #define CPU_NAME "the_cpu_type"
 
@@ -49,6 +49,14 @@ static void machinexyz_init(MachineState *machine)
     sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0xccc0000);
     sysbus_mmio_map(SYS_BUS_DEVICE(o), 1, 0xddd0000);
+
+    // add SRAM@0x14680000 of size 0x40000
+    MemoryRegion *sram = g_new(MemoryRegion, 1);
+    memory_region_init_ram(sram, 0, "sram", 0x40000, &error_fatal);
+    memory_region_add_subregion(get_system_memory(), 0x14680000, sram);
+
+    // add DRAM
+    memory_region_add_subregion(get_system_memory(), machine->ram_size, machine->ram);
 
     // load firmware image
     if (machine->firmware != NULL) {
