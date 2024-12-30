@@ -60,7 +60,9 @@ static uint64_t devxyz_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
 
     switch (addr) {
 
-    //case 0xa0 ... 0x1000:   //upper limit for debugging
+    // case 0xa0 ... 0x1000:   //upper limit for debugging
+    //     qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
+    //     break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
@@ -72,7 +74,9 @@ static void devxyz_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsig
 
     switch (addr) {
 
-    //case 0xa0 ... 0x1000:   //upper limit for debugging
+    // case 0xa0 ... 0x1000:   //upper limit for debugging
+    //     qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
+    //     break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
