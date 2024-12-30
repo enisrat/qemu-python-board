@@ -56,10 +56,11 @@ static Property devxyz_properties[] = {
  * */
 static uint64_t devxyz_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
     devxyzState *s = (devxyzState *) opaque;
-    uint64_t ret;
+    uint64_t ret = 0;
 
     switch (addr) {
 
+    //case 0xa0 ... 0x1000:   //upper limit for debugging
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
@@ -71,6 +72,7 @@ static void devxyz_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsig
 
     switch (addr) {
 
+    //case 0xa0 ... 0x1000:   //upper limit for debugging
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
