@@ -49,6 +49,8 @@ static void machinexyz_init(MachineState *machine)
     sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0xccc0000);
     sysbus_mmio_map(SYS_BUS_DEVICE(o), 1, 0xddd0000);
+    // connect serial 0 to devC
+    qdev_prop_set_chr(o, "prop_chr", serial_hd(0));
 
     // add SRAM@0x14680000 of size 0x40000
     MemoryRegion *sram = g_new(MemoryRegion, 1);
