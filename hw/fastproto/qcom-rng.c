@@ -64,22 +64,27 @@ static uint64_t qcom_rng_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
 
     switch (addr) {
 	case 0x0000:
-		return 1;
-	case 0x0004:
-		return 1;
-	case 0x140:
-		return 1<<0x19;
-    case 0x144 ... 0x1000:   //upper limit for debugging
+		ret = 1;
+        break;
+    case 0x0004:
+        return 1;
+        break;
+    case 0x140:
+        ret = 1<<0x19;
+        break;
+    case 0x144 ... 0x1000: // upper limit for debugging
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
         break;
     default:
         return s->state[addr >> 2];
     }
 
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
     return ret;
 }
 static void qcom_rng_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsigned size) {
     qcom_rngState *s = (qcom_rngState *) opaque;
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
 
     switch (addr) {
     case 0x144 ... 0x1000:   //upper limit for debugging

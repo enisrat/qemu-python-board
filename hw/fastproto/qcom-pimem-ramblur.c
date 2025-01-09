@@ -71,13 +71,14 @@ static uint64_t qcom_pimem_ramblur_mmio1_read (void *opaque, hwaddr addr, unsign
     
     default:
         return s->state[addr>>2];
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
 
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
     return ret;
 }
 static void qcom_pimem_ramblur_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsigned size) {
     qcom_pimem_ramblurState *s = (qcom_pimem_ramblurState *) opaque;
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
 
     switch (addr) {
 
@@ -137,7 +138,7 @@ static void qcom_pimem_ramblur_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-    memory_region_init_io(&s->mmio1, obj, &qcom_pimem_ramblur_ops, s, "qcom_pimem_ramblur_mmio1", 0x1000);
+    memory_region_init_io(&s->mmio1, obj, &qcom_pimem_ramblur_ops, s, "qcom_pimem_ramblur_mmio1", 0x8000);
     sysbus_init_mmio(sbd, &s->mmio1);
 
     for (int i = 0; i < NUM_GPIO_OUT; i++) { sysbus_init_irq(sbd, &s->out[i]); }

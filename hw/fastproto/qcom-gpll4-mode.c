@@ -62,20 +62,21 @@ static uint64_t qcom_gpll4_mode_mmio1_read (void *opaque, hwaddr addr, unsigned 
 
     switch (addr) {
     case 4:
-        return 0xffffffff;
+        ret = 0xffffffff;
+        break;
     default:
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
+        ret = 0;
     }
 
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
     return ret;
 }
 static void qcom_gpll4_mode_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsigned size) {
     qcom_gpll4_modeState *s = (qcom_gpll4_modeState *) opaque;
-
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
     switch (addr) {
 
-    default:
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
+
     }
 }
 static const MemoryRegionOps qcom_gpll4_mode_ops = {

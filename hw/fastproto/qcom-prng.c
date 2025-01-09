@@ -67,20 +67,24 @@ static uint64_t qcom_prng_mmio1_read (void *opaque, hwaddr addr, unsigned size) 
 
     switch (addr) {
     case 0:
-        return 0x12345678;  // PRNG_DATA_OUT
+        ret = 0x12345678;  // PRNG_DATA_OUT
+        break;
     case 4:
-        return 1;           // PRNG_CFG_TZ_PRNG_STATUS
+        ret = 1;           // PRNG_CFG_TZ_PRNG_STATUS
+        break;
     case 0x140:
-        return 1<<0x19; // PRNG_CFG_TZ_PRNG_KAT_STATUS
+        ret = 1<<0x19; // PRNG_CFG_TZ_PRNG_KAT_STATUS
+        break;
     default:
-        return s->state[addr / 4];
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
+        ret = s->state[addr / 4];
     }
 
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
     return ret;
 }
 static void qcom_prng_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsigned size) {
     qcom_prngState *s = (qcom_prngState *) opaque;
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
 
     switch (addr) {
 
