@@ -13,6 +13,8 @@
 #include "hw/irq.h"
 #include "qom/object.h"
 #include "hw/qdev-properties.h"
+#include "hw/qdev-properties-system.h"
+#include "chardev/char-fe.h"
 
 #define TYPE_DEVXYZ "devxyz"
 OBJECT_DECLARE_SIMPLE_TYPE(devxyzState, DEVXYZ)
@@ -31,7 +33,8 @@ struct devxyzState {
     /* GPIO in (this is a bitfield of input PIN states)*/
     uint64_t level_in;
     /* Properties */
-    char *prop_char;
+    CharBackend prop_chr;
+    char *prop_str;
     uint64_t prop_uint64;
     bool prop_bool;
 
@@ -43,7 +46,8 @@ struct devxyzState {
 };
 
 static Property devxyz_properties[] = {
-    DEFINE_PROP_STRING("prop_char", devxyzState, prop_char),
+    DEFINE_PROP_CHR("prop_chr", devxyzState, prop_chr),
+    DEFINE_PROP_STRING("prop_str", devxyzState, prop_str),
     DEFINE_PROP_UINT64("prop_uint64", devxyzState, prop_uint64, 0),
     DEFINE_PROP_BOOL("prop_bool", devxyzState, prop_bool, 0),
     DEFINE_PROP_END_OF_LIST(),
@@ -51,8 +55,9 @@ static Property devxyz_properties[] = {
 
 /**
  * mmio1 definitions
- * If you want more than one MMIO regions: 
+ * If you want more than one MMIO region: 
  * simply duplicate below _read(), _write() and _ops code , then Find&Replace mmio1 -> mmio2 
+ * and add memory_region_init_io(...) below
  * */
 static uint64_t devxyz_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
     devxyzState *s = (devxyzState *) opaque;
@@ -60,23 +65,19 @@ static uint64_t devxyz_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
 
     switch (addr) {
 
-    // case 0xa0 ... 0x1000:   //upper limit for debugging
-    //     qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
-    //     break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
 
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
     return ret;
 }
 static void devxyz_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsigned size) {
     devxyzState *s = (devxyzState *) opaque;
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
 
     switch (addr) {
 
-    // case 0xa0 ... 0x1000:   //upper limit for debugging
-    //     qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
-    //     break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }

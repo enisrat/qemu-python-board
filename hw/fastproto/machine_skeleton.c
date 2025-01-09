@@ -36,12 +36,12 @@ static void machinexyz_init(MachineState *machine)
         object_unref(cpuobj);
     }
 
-    // Interrupt Controller created first
+    // Interrupt Controller (IC) created first
     DeviceState *icdev = create_ic();
 
-    // init devA@0xaaa0000 and connect output pin to IC pin 5
+    // init devA @0xaaa0000 and connect output pin to IC pin 5
     sysbus_create_varargs("devA", 0xaaa0000, qdev_get_gpio_in(icdev, 5));
-    // init devB@0xbbb0000 and connect output pins to IC pins 6,7
+    // init devB @0xbbb0000 and connect output pins to IC pins 6,7
     sysbus_create_varargs("devB", 0xbbb0000, qdev_get_gpio_in(icdev, 6), qdev_get_gpio_in(icdev, 7));
 
     // init devC with two MMIOs @0xccc0000 and @0xddd0000
@@ -49,16 +49,20 @@ static void machinexyz_init(MachineState *machine)
     sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0xccc0000);
     sysbus_mmio_map(SYS_BUS_DEVICE(o), 1, 0xddd0000);
+    // connect output pin 0 to IC input pin 8
+    sysbus_connect_irq(o, 0, qdev_get_gpio_in(icdev, 8));
+    // connect serial 0 to devC
+    qdev_prop_set_chr(o, "prop_chr", serial_hd(0));
 
-    // add SRAM@0x14680000 of size 0x40000
+    // add SRAM @0x14680000 of size 0x40000
     MemoryRegion *sram = g_new(MemoryRegion, 1);
     memory_region_init_ram(sram, 0, "sram", 0x40000, &error_fatal);
     memory_region_add_subregion(get_system_memory(), 0x14680000, sram);
 
-    // add DRAM
-    memory_region_add_subregion(get_system_memory(), machine->ram_size, machine->ram);
+    // add DRAM @0x80000000
+    memory_region_add_subregion(get_system_memory(), 0x80000000, machine->ram);
 
-    // load firmware image
+    // load firmware image @0xfff88000
     if (machine->firmware != NULL) {
         char *fn = qemu_find_file(QEMU_FILE_TYPE_BIOS, machine->firmware);
         if (fn != NULL) {
