@@ -55,8 +55,9 @@ static Property devxyz_properties[] = {
 
 /**
  * mmio1 definitions
- * If you want more than one MMIO regions: 
+ * If you want more than one MMIO region: 
  * simply duplicate below _read(), _write() and _ops code , then Find&Replace mmio1 -> mmio2 
+ * and add memory_region_init_io(...) below
  * */
 static uint64_t devxyz_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
     devxyzState *s = (devxyzState *) opaque;
@@ -64,25 +65,19 @@ static uint64_t devxyz_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
 
     switch (addr) {
 
-    // case 0xa0 ... 0x1000:   //upper limit for debugging
-    //     qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
-    //     break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
 
-    qemu_log_mask(LOG_GUEST_ERROR, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
     return ret;
 }
 static void devxyz_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsigned size) {
     devxyzState *s = (devxyzState *) opaque;
-    qemu_log_mask(LOG_GUEST_ERROR, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
+    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
 
     switch (addr) {
 
-    // case 0xa0 ... 0x1000:   //upper limit for debugging
-    //     qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
-    //     break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
