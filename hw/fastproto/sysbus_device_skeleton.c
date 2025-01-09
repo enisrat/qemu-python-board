@@ -82,7 +82,7 @@ static void devxyz_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsig
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
     }
 }
-static const MemoryRegionOps devxyz_ops = {
+static const MemoryRegionOps devxyz_mmio1_ops = {
     .read = devxyz_mmio1_read,
     .write = devxyz_mmio1_write,
     .endianness = DEVICE_NATIVE_ENDIAN,
@@ -134,7 +134,7 @@ static void devxyz_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-    memory_region_init_io(&s->mmio1, obj, &devxyz_ops, s, "devxyz_mmio1", 0x1000);
+    memory_region_init_io(&s->mmio1, obj, &devxyz_mmio1_ops, s, "devxyz_mmio1", 0x1000);
     sysbus_init_mmio(sbd, &s->mmio1);
 
     for (int i = 0; i < NUM_GPIO_OUT; i++) { sysbus_init_irq(sbd, &s->out[i]); }
