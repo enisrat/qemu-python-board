@@ -13,6 +13,7 @@
 #include "hw/irq.h"
 #include "qom/object.h"
 #include "hw/qdev-properties.h"
+#include "chardev/char-fe.h"
 
 #define TYPE_qcom_qup "qcom_qup"
 OBJECT_DECLARE_SIMPLE_TYPE(qcom_qupState, qcom_qup)
