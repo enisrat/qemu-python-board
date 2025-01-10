@@ -232,8 +232,10 @@ static UfsReqResult ufs_emulate_scsi_cmd(UfsLu *lu, UfsRequest *req)
         }
         /* fallthrough */
     default:
-        scsi_build_sense(sense_buf, SENSE_CODE(INVALID_OPCODE));
-        scsi_status = CHECK_CONDITION;
+        len = scsi_build_sense_buf(outbuf, sizeof(outbuf), SENSE_CODE(NO_SENSE),
+                                   true);
+        scsi_status = GOOD;
+        break;
     }
 
     len = MIN(len, (int)req->data_len);
@@ -297,6 +299,13 @@ static bool ufs_add_lu(UfsHc *u, UfsLu *lu, Error **errp)
         return false;
     }
 
+    if( lu->lun == 7 ) { /* BOOT LUN config*/
+        lu->unit_desc.boot_lun_id = 1;
+        lu->unit_desc.lu_enable = 1;
+        u->device_desc.boot_enable = 1;
+        u->attributes.boot_lun_en = 1;
+        u->boot_wlu = lu;
+    }
     u->lus[lu->lun] = lu;
     u->device_desc.number_lu++;
     raw_dev_cap += (brdv_len >> UFS_GEOMETRY_CAPACITY_SHIFT);
