@@ -1,7 +1,5 @@
-
 /**
- * Machine (Board) skeleton that compiles. 
- * Includes convenience example code for easy replacement and extension
+ * Redfin (Pixel 4a5G / 5)
  */
 
 #include "qemu/osdep.h"
@@ -140,31 +138,31 @@ static void redfin_init(MachineState *machine)
     // Interrupt Controller (IC) created first
     DeviceState *icdev = create_ic();
 
-    sysbus_create_varargs("ufs", 0x1d84000);
+    sysbus_create_varargs("ufs", 0x1d84000, NULL);
 
-    sysbus_create_varargs("qcom_clkdom", 0x17800000 + 0x00541000);
-    sysbus_create_varargs("qcom_mpm2_sleepctr", 0xC221000);
-    sysbus_create_varargs("qcom_pimem_ramblur", 0x610000);
-    sysbus_create_varargs("qcom_gpll4_mode", 0x177000);
-    sysbus_create_varargs("qcom_prng", 0x791000);
-    sysbus_create_varargs("qcom_qfprom", 0x780000);
-    sysbus_create_varargs("qcom_qup", 0x888000);
-    sysbus_create_varargs("qcom_rng", 0x793000);
-    sysbus_create_varargs("qcom_smmu", 0x15000000);
-    sysbus_create_varargs("qcom_tcsr_boot_misc_detect", 0x1FD3000);
-    sysbus_create_varargs("qcom_tcsr_wonce", 0x1FD4000);
-    sysbus_create_varargs("qcom_tcsr_devconfig", 0x1FC8000);
-    sysbus_create_varargs("qcom_tcsr_mutex", 0x1F40000);
-    sysbus_create_varargs("qcom_timer1", 0x17C21000);
-    sysbus_create_varargs("qcom_ufsphy", 0x1D87000);
-    sysbus_create_varargs("qcom_0x1dc0000", 0x1DC0000);
-    sysbus_create_varargs("qcom_0x90c0000", 0x90c0000);
-    sysbus_create_varargs("qcom_0x189000", 0x1890000);
-    sysbus_create_varargs("qcom_0x190000", 0x190000);
-    sysbus_create_varargs("qcom_0xc230000", 0xc230000);
-    sysbus_create_varargs("qcom_qtimer1", 0x17C20000);
-    sysbus_create_varargs("qcom_0xc600000", 0xc600000);
-    
+    sysbus_create_varargs("qcom_clkdom", 0x17800000 + 0x00541000, NULL);
+    sysbus_create_varargs("qcom_mpm2_sleepctr", 0xC221000, NULL);
+    sysbus_create_varargs("qcom_pimem_ramblur", 0x610000, NULL);
+    sysbus_create_varargs("qcom_gpll4_mode", 0x177000, NULL);
+    sysbus_create_varargs("qcom_prng", 0x791000, NULL);
+    sysbus_create_varargs("qcom_qfprom", 0x780000, NULL);
+    sysbus_create_varargs("qcom_qup", 0x888000, NULL);
+    sysbus_create_varargs("qcom_rng", 0x793000, NULL);
+    sysbus_create_varargs("qcom_smmu", 0x15000000, NULL);
+    sysbus_create_varargs("qcom_tcsr_boot_misc_detect", 0x1FD3000, NULL);
+    sysbus_create_varargs("qcom_tcsr_wonce", 0x1FD4000, NULL);
+    sysbus_create_varargs("qcom_tcsr_devconfig", 0x1FC8000, NULL);
+    sysbus_create_varargs("qcom_tcsr_mutex", 0x1F40000, NULL);
+    sysbus_create_varargs("qcom_timer1", 0x17C21000, NULL);
+    sysbus_create_varargs("qcom_ufsphy", 0x1D87000, NULL);
+    sysbus_create_varargs("qcom_0x1dc0000", 0x1DC0000, NULL);
+    sysbus_create_varargs("qcom_0x90c0000", 0x90c0000, NULL);
+    sysbus_create_varargs("qcom_0x189000", 0x1890000, NULL);
+    sysbus_create_varargs("qcom_0x190000", 0x190000, NULL);
+    sysbus_create_varargs("qcom_0xc230000", 0xc230000, NULL);
+    sysbus_create_varargs("qcom_qtimer1", 0x17C20000, NULL);
+    sysbus_create_varargs("qcom_0xc600000", 0xc600000, NULL);
+
     o = qdev_new("qcom_spmi");
     sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x0c40a000);
