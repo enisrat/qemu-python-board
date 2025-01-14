@@ -41,6 +41,7 @@
 #include "tb-context.h"
 #include "internal-common.h"
 #include "internal-target.h"
+#include "tcg/instrument.h"
 
 /* -icount align implementation. */
 
@@ -406,6 +407,7 @@ const void *HELPER(lookup_tb_ptr)(CPUArchState *env)
     uint64_t cs_base;
     uint32_t flags, cflags;
 
+
     /*
      * By definition we've just finished a TB, so I/O is OK.
      * Avoid the possibility of calling cpu_io_recompile() if
@@ -415,6 +417,10 @@ const void *HELPER(lookup_tb_ptr)(CPUArchState *env)
      */
     cpu->neg.can_do_io = true;
     cpu_get_tb_cpu_state(env, &pc, &cs_base, &flags);
+
+    if( check_instrument(pc, cpu->cpu_index) ) {
+        return tcg_code_gen_epilogue;
+    }
 
     cflags = curr_cflags(cpu);
     if (check_for_breakpoints(cpu, pc, &cflags)) {
@@ -963,6 +969,14 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
             vaddr pc;
             uint64_t cs_base;
             uint32_t flags, cflags;
+
+            /* Instrument Breakpoint pending?
+             * Handle this before all other stuff
+             */
+            pc = cpu->cc->get_pc(cpu);
+            if( call_instrument_cb(cpu, pc) ) {
+                last_tb = NULL;
+            }
 
             cpu_get_tb_cpu_state(cpu_env(cpu), &pc, &cs_base, &flags);
 
