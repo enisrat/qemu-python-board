@@ -30,7 +30,20 @@ bool remove_instrument(vaddr pc, int cpu_index);
 void init_instrument_htable(void);
 
 
+typedef struct {
+	size_t tgt_offset; //the offset inside CPUState to overwrite with @value
+	size_t src_offset; //value to read from (for register move). 
+						//If this is NULL, @value is used. If this is not NULL, @value is ignored.
+	size_t sz; // the size of the value to overwrite (1,2,4 or 8)
+	uint64_t value;
+} RegisterOverwrite;
 
+/*
+ * Overwrite values of a register in the CPUState struct.
+ * @opaque is a NULL terminated array of RegisterOverwrite structs.
+ *
+*/
+void instrument_cb_overwrite(CPUState *cs, vaddr pc, void *opaque);
 
 
 #endif
