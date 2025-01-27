@@ -21,6 +21,7 @@
 #include "hw/core/cpu.h"
 #include "qapi/qmp/qlist.h"
 #include "target/arm/cpu.h"
+#include "tcg/instrument.h"
 
 #define CPU_NAME "cortex-a53-arm-cpu"
 
@@ -114,9 +115,13 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
     return gic;
 }
 
-DeviceState *create_ic()
+static DeviceState *create_ic()
 {
     return create_gicv3(192, 0x17a00000, 0x17a60000);
+}
+
+static void brom_instrument() {
+    
 }
 
 static void redfin_init(MachineState *machine)
@@ -192,6 +197,10 @@ static void redfin_init(MachineState *machine)
     // add DRAM @0x80000000
     memory_region_add_subregion(get_system_memory(), 0x80000000, machine->ram);
 
+    MemoryRegion *rom = g_new(MemoryRegion, 1);
+    memory_region_init_rom(rom, 0, "rom", 0x100000, &error_fatal);
+    memory_region_add_subregion(get_system_memory(), 0x300000, rom);
+
     // load BOOTROM image @300000
     if (machine->firmware != NULL) {
         char *fn = qemu_find_file(QEMU_FILE_TYPE_BIOS, machine->firmware);
@@ -213,7 +222,7 @@ static void redfin_init(MachineState *machine)
 
     cpu_set_pc(cs, 0x300000);
     arm_rebuild_hflags(&cs->env);
-    //init_instrument_htable()
+    init_instrument_htable();
 }
 
 static void redfin_machine_init(MachineClass *mc)
