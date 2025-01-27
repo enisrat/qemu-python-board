@@ -120,11 +120,24 @@ static DeviceState *create_ic()
     return create_gicv3(192, 0x17a00000, 0x17a60000);
 }
 
-static void brom_instrument() {
-    
+static RegisterOverwrite Ret0[] = {
+    {offsetof(ARMCPU, env.xregs[0]), 0, 8, 0},
+    {offsetof(ARMCPU, env.pc), offsetof(ARMCPU, env.xregs[30]), 8, 0},
+    {0,0,0,0}
+};
+static RegisterOverwrite Ret1[] = {
+    {offsetof(ARMCPU, env.xregs[0]), 0, 8, 1},
+    {offsetof(ARMCPU, env.pc), offsetof(ARMCPU, env.xregs[30]), 8, 0},
+    {0,0,0,0}
+};
+
+static void brom_instrument()
+{
+    add_instrument(0x302A08, -1, instrument_cb_overwrite, Ret0); // pbl_hw_init
+    add_instrument(0x30F9E4, -1, instrument_cb_overwrite, Ret1); // some clk control??
 }
 
-static void redfin_init(MachineState *machine)
+static void redfin_init(MachineState * machine)
 {
     Error *err = NULL;
     Object *o;
@@ -223,6 +236,8 @@ static void redfin_init(MachineState *machine)
     cpu_set_pc(cs, 0x300000);
     arm_rebuild_hflags(&cs->env);
     init_instrument_htable();
+
+    brom_instrument();
 }
 
 static void redfin_machine_init(MachineClass *mc)
