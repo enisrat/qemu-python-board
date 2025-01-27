@@ -1,4 +1,3 @@
-
 /**
  * Machine (Board) skeleton that compiles. 
  * Includes convenience example code for easy replacement and extension
