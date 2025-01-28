@@ -122,22 +122,23 @@ static DeviceState *create_ic()
     return create_gicv3(192, 0x17a00000, 0x17a60000);
 }
 
-static RegisterOverwrite Ret0[] = {
-    {offsetof(ARMCPU, env.xregs[0]), 0, 8, 0},
-    {offsetof(ARMCPU, env.pc), offsetof(ARMCPU, env.xregs[30]), 8, 0},
-    {0,0,0,0}
-};
-static RegisterOverwrite Ret1[] = {
-    {offsetof(ARMCPU, env.xregs[0]), 0, 8, 1},
-    {offsetof(ARMCPU, env.pc), offsetof(ARMCPU, env.xregs[30]), 8, 0},
-    {0,0,0,0}
-};
-static RegisterOverwrite patchXBL_SEC_Upper_Bound[] = {
-    {offsetof(ARMCPU, env.xregs[17]), 0, 8, 0x148fffff},
-    {0, 0, 0, 0}};
-static RegisterOverwrite fix_PMD_for_Secmon[] = {
-    {offsetof(ARMCPU, env.xregs[1]), 0, 8, 0x1},
-    {0, 0, 0, 0}};
+static void retN(CPUState *cs, vaddr pc, void *opaque)
+{
+    qemu_log_mask(LOG_TRACE, "HIT instrument @%llx cpu %d %llx\n", pc, cs->cpu_index, opaque);
+    ARMCPU *cpu = ARM_CPU(cs);
+    cpu->env.xregs[0] = (uint64_t)opaque;
+    cpu->env.pc = cpu->env.xregs[30];
+}
+static void patchXBL_SEC_Upper_Bound_func(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    cpu->env.xregs[17] = 0x148fffff;
+}
+static void fix_PMD_for_Secmon_func(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    cpu->env.xregs[1] = 0x1;
+}
 
 static __thread int hashmode = 0;
 static __thread char hashbuf[1<<20]; //just big enough for the largest hash
@@ -197,10 +198,10 @@ void hash_finish(CPUState *cs, vaddr pc, void *opaque)
 
 static void brom_instrument()
 {
-    add_instrument(0x302A08, -1, instrument_cb_overwrite, Ret0); // pbl_hw_init
-    add_instrument(0x30F9E4, -1, instrument_cb_overwrite, Ret1); // some clk control??
-    add_instrument(0x303660, -1, instrument_cb_overwrite, patchXBL_SEC_Upper_Bound);
-    add_instrument(0x302344, 0x302348, instrument_cb_overwrite, fix_PMD_for_Secmon);
+    add_instrument(0x302A08, -1, retN, 0); // pbl_hw_init
+    add_instrument(0x30F9E4, -1, retN, 1); // some clk control??
+    add_instrument(0x303660, -1, patchXBL_SEC_Upper_Bound_func, 0);
+    add_instrument(0x302344, 0x302348, fix_PMD_for_Secmon_func, 0);
     
     add_instrument(0x31DB9C, -1, hash_init, NULL);
     add_instrument(0x31DE0C, -1, hash_update, NULL);
