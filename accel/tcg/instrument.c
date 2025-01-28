@@ -1,7 +1,7 @@
 #include "qemu/osdep.h"
 #include "tcg/instrument.h"
 #include "stdbool.h"
-#include "qemu/log.h"
+
 
 typedef struct  {
 	vaddr pc;
@@ -95,34 +95,4 @@ void init_instrument_htable(void) {
 };
 
 
-void instrument_cb_overwrite(CPUState *cs, vaddr pc, void *opaque)
-{
-	qemu_log_mask(LOG_TRACE, "HIT instrument @%llx cpu %d\n", pc, cs->cpu_index);
 
-	RegisterOverwrite *overwrites = (RegisterOverwrite*)opaque;
-	for (RegisterOverwrite *o = overwrites; o->tgt_offset != 0; o++) {
-		uint8_t *tgt = (uint8_t *)cs + o->tgt_offset;
-		uint64_t value = o->value;
-		if (o->src_offset != 0)
-		{
-			uint8_t *src = (uint8_t *)cs + o->src_offset;
-			value = 0;
-			if (o->sz == 1)
-				value = *src;
-			if (o->sz == 2)
-				value = *(uint16_t *)src;
-			if (o->sz == 4)
-				value = *(uint32_t *)src;
-			if (o->sz == 8)
-				value = *(uint64_t *)src;
-		}
-		if(o->sz == 1)
-			*tgt = value & 0xFF;
-		if(o->sz == 2)
-			*(uint16_t *)tgt = value & 0xFFFF;
-		if(o->sz == 4)
-			*(uint32_t *)tgt = value & 0xFFFFFFFF;
-		if(o->sz == 8)
-			*(uint64_t *)tgt = value;
-	}
-}
