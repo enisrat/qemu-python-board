@@ -161,6 +161,9 @@ static void print_smc(CPUState *cs, vaddr pc, void *opaque)
     qemu_log_mask(LOG_TRACE, "EL1 SMC: %d\n", cpu->env.xregs[0]);
 }
 
+// externally defined
+void hook_qsee_start(CPUState *cs, vaddr pc, void *opaque);
+
 void tz_instrument()
 {
     add_instrument(0x887A395C8, -1, ICB_Get_Memmap, NULL); // ICB_Get_Memmap
@@ -200,7 +203,7 @@ void tz_instrument()
     add_instrument(0x887A7A718, -1, retN, 1); // is_Anti_rollback_enabled
     add_instrument(0x887A3DC3C, -1, retN, 0); // some AC functionality
 
-    add_instrument(0x14680000, -1, NULL, NULL); // hook_qsee_start
+    add_instrument(0x14680000, -1, hook_qsee_start, NULL); // hook_qsee_start
 
     add_instrument(0x887A99790, -1, retN, 0); // print_smc
 }
