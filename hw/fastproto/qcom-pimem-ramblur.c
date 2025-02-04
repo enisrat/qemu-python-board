@@ -59,18 +59,22 @@ def read(addr, sz):
 	state[0x98] = ( state.get(0x98,0) +1)%2 	#toggle bit
 	state[0x9c] = ( state.get(0x9c,0) +1)%2 	#toggle bit
 	state[0xa0] = ( state.get(0xa0,0) +1)%2 	#toggle bit
-	return state.get(addr, 0)
-def write(addr, data, sz):
-	print(f"{__name__} write {hex(addr)} size {hex(sz)} val {hex(data)}")
-	state[addr] = data */
+	return state.get(addr, 0)*/
 static uint64_t qcom_pimem_ramblur_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
     qcom_pimem_ramblurState *s = (qcom_pimem_ramblurState *) opaque;
     uint64_t ret;
 
+    if( addr == 0x98 || addr == 0x9c || addr == 0xa0 ) {
+        s->state[addr >> 2] += 1;
+        s->state[addr >> 2] %= 2;   //toggle bit
+    }
+
     switch (addr) {
-    
+    case 0 ... 0x100:
+        ret = s->state[addr >> 2];
+        break;
     default:
-        return s->state[addr>>2];
+        ret = s->state[addr>>2];
     }
 
     qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);

@@ -139,7 +139,7 @@ static void qcom_smmu_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-    memory_region_init_io(&s->mmio1, obj, &qcom_smmu_mmio1_ops, s, "qcom_smmu_mmio1", 0x1000);
+    memory_region_init_io(&s->mmio1, obj, &qcom_smmu_mmio1_ops, s, "qcom_smmu_mmio1", 0x10000);
     sysbus_init_mmio(sbd, &s->mmio1);
 
     for (int i = 0; i < NUM_GPIO_OUT; i++) { sysbus_init_irq(sbd, &s->out[i]); }

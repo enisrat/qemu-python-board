@@ -24,6 +24,8 @@
 #include "tcg/instrument.h"
 #include "crypto/hash.h"
 #include "qemu/log.h"
+#include "sysemu/sysemu.h"
+#include "chardev/char.h"
 
 #define CPU_NAME "cortex-a53-arm-cpu"
 
@@ -124,6 +126,8 @@ static DeviceState *create_ic()
 
 // pull in modularized code
 void brom_instrument();
+void xbl_sec_instrument();
+void sbl1_instrument();
 
 static void redfin_init(MachineState * machine)
 {
@@ -152,7 +156,6 @@ static void redfin_init(MachineState * machine)
     sysbus_create_varargs("qcom_gpll4_mode", 0x177000, NULL);
     sysbus_create_varargs("qcom_prng", 0x791000, NULL);
     sysbus_create_varargs("qcom_qfprom", 0x780000, NULL);
-    sysbus_create_varargs("qcom_qup", 0x888000, NULL);
     sysbus_create_varargs("qcom_rng", 0x793000, NULL);
     sysbus_create_varargs("qcom_smmu", 0x15000000, NULL);
     sysbus_create_varargs("qcom_tcsr_boot_misc_detect", 0x1FD3000, NULL);
@@ -163,11 +166,21 @@ static void redfin_init(MachineState * machine)
     sysbus_create_varargs("qcom_ufsphy", 0x1D87000, NULL);
     sysbus_create_varargs("qcom_0x1dc0000", 0x1DC0000, NULL);
     sysbus_create_varargs("qcom_0x90c0000", 0x90c0000, NULL);
-    sysbus_create_varargs("qcom_0x189000", 0x1890000, NULL);
+    sysbus_create_varargs("qcom_0x189000", 0x189000, NULL);
     sysbus_create_varargs("qcom_0x190000", 0x190000, NULL);
     sysbus_create_varargs("qcom_0xc230000", 0xc230000, NULL);
     sysbus_create_varargs("qcom_qtimer1", 0x17C20000, NULL);
     sysbus_create_varargs("qcom_0xc600000", 0xc600000, NULL);
+
+    o = qdev_new("qcom_qup");
+    Chardev *chr = qemu_chr_find("qup");
+    if(!chr){
+        error_report("chardev with id \"qup\" not found\n");
+        exit(1);
+    }
+    qdev_prop_set_chr(o, "prop_chr", chr);
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
+    sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x888000);
 
     o = qdev_new("qcom_spmi");
     sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
@@ -226,6 +239,9 @@ static void redfin_init(MachineState * machine)
     init_instrument_htable();
 
     brom_instrument();
+    xbl_sec_instrument();
+    sbl1_instrument();
+    tz_instrument();
 }
 
 static void redfin_machine_init(MachineClass *mc)

@@ -13,6 +13,7 @@
 #include "hw/irq.h"
 #include "qom/object.h"
 #include "hw/qdev-properties.h"
+#include "hw/qdev-properties-system.h"
 #include "chardev/char-fe.h"
 
 #define TYPE_qcom_qup "qcom_qup"
@@ -36,14 +37,17 @@ struct qcom_qupState {
     uint64_t prop_uint64;
     bool prop_bool;
 
+    CharBackend prop_chr;
+
     /* Put your NOT SAVED members here */
 
     char _vmstate_saved_offset;
     /* members below this point are SAVED in the vmstate */
-
+    int nextlen;
 };
 
 static Property qcom_qup_properties[] = {
+    DEFINE_PROP_CHR("prop_chr", qcom_qupState, prop_chr),
     DEFINE_PROP_STRING("prop_char", qcom_qupState, prop_char),
     DEFINE_PROP_UINT64("prop_uint64", qcom_qupState, prop_uint64, 0),
     DEFINE_PROP_BOOL("prop_bool", qcom_qupState, prop_bool, 0),
@@ -77,8 +81,11 @@ static void qcom_qup_mmio1_write (void *opaque, hwaddr addr, uint64_t value, uns
     qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
 
     switch (addr) {
+    case 0x270:
+        s->nextlen = value;
+        break;
     case 0x700:
-        qemu_chr_fe_write_all(serial_hd(0), &value, 4);
+        qemu_chr_fe_write_all(&s->prop_chr, &value, s->nextlen);
         break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset 0x%" HWADDR_PRIx "\n", __func__, addr);
@@ -146,7 +153,7 @@ static void qcom_qup_init(Object *obj)
 static void qcom_qup_realize(DeviceState *dev, Error **errp)
 {
     qcom_qupState *s = (qcom_qupState *) dev;
-
+    //qemu_chr_fe_init(&s->prop_chr, s->prop_chr.chr, &error_abort);
 }
 
 static void qcom_qup_class_init(ObjectClass *klass, void *data)
