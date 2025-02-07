@@ -64,8 +64,8 @@ static uint64_t qcom_qtimer1_mmio1_read (void *opaque, hwaddr addr, unsigned siz
     uint64_t ret = 0;
 
     switch (addr) {
-    case 0:
-        ret = 4;
+    case 0: //CNTFRQ
+        ret = 1000000000;   
         break;
     case 4:
         ret = 8;

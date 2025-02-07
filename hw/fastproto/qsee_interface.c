@@ -111,7 +111,7 @@ static void remove_hyp(CPUState *cs, boot_sbl_qsee_interface *qi) {
     qi->number_images = 6;
     qi->appsbl_entry_index = 5;
 
-    cpu_memory_rw_debug(cs, 0x148FA220, &qi, sizeof(boot_sbl_qsee_interface), true);
+    cpu_memory_rw_debug(cs, 0x148FA220, qi, sizeof(boot_sbl_qsee_interface), true);
     qemu_log_mask(LOG_TRACE, "Removed HYP from sbl_qsee_interface\n");
 }
 

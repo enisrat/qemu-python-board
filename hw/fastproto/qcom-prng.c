@@ -79,7 +79,7 @@ static uint64_t qcom_prng_mmio1_read (void *opaque, hwaddr addr, unsigned size) 
         ret = s->state[addr / 4];
     }
 
-    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
+    //qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
     return ret;
 }
 static void qcom_prng_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsigned size) {

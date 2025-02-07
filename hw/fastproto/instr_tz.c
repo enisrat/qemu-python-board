@@ -73,10 +73,11 @@ static void get_possible_DRAM_range(CPUState *cs, vaddr pc, void *opaque)
 {
     ARMCPU *cpu = ARM_CPU(cs);
 
+    qemu_log_mask(LOG_TRACE, "get_possible_DRAM_range: %llx %llx\n", cpu->env.xregs[0], cpu->env.xregs[1]);
     uint32_t start = 0x80000000;
     uint64_t end = 0x300000000;
-    cpu_memory_rw_debug(cs, cpu->env.xregs[0], start, sizeof(start), true);
-    cpu_memory_rw_debug(cs, cpu->env.xregs[1], end, sizeof(end), true);
+    cpu_memory_rw_debug(cs, cpu->env.xregs[0], &start, sizeof(start), true);
+    cpu_memory_rw_debug(cs, cpu->env.xregs[1], &end, sizeof(end), true);
     
     cpu->env.xregs[0] = 0;
     cpu->env.pc = cpu->env.xregs[30];
@@ -92,7 +93,7 @@ static void tz_get_loglevel(CPUState *cs, vaddr pc, void *opaque)
 static void disable_xpu_ac(CPUState *cs, vaddr pc, void *opaque)
 {
     uint32_t flag = 1;
-    cpu_memory_rw_debug(cs, 0x887AED30C, flag, sizeof(flag), true);
+    cpu_memory_rw_debug(cs, 0x887AED30C, &flag, sizeof(flag), true);
     ARMCPU *cpu = ARM_CPU(cs);
     cpu->env.pc = cpu->env.xregs[30];
 }
@@ -186,7 +187,7 @@ void tz_instrument()
     add_instrument(0x887A44264, -1, retN, 0); // VMIDMT stuff (related to XPU, SMMU)
     add_instrument(0x887A55BDC, -1, retN, 0); // SMMU debug config
     add_instrument(0x887A09780, -1, retN, 0); // Qcom IPA (integrated HW IP switch)
-    add_instrument(0x887A3CD5C, -1, retN, 0); // AC XPU?
+    //add_instrument(0x887A3CD5C, -1, retN, 0); // AC XPU?
     add_instrument(0x8879CB46C, -1, retN, 0);
     add_instrument(0x887A13330, -1, retN, 0);
 
@@ -205,5 +206,5 @@ void tz_instrument()
 
     add_instrument(0x14680000, -1, hook_qsee_start, NULL); // hook_qsee_start
 
-    add_instrument(0x887A99790, -1, retN, 0); // print_smc
+    add_instrument(0x887A99790, -1, print_smc, 0); // print_smc
 }

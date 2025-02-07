@@ -232,6 +232,7 @@ static void redfin_init(MachineState * machine)
 
     ARMCPU * cs = qemu_get_cpu(0);
 
+    cpu_reset(cs);
     arm_emulate_firmware_reset(cs, 3);
 
     cpu_set_pc(cs, 0x300000);
@@ -242,6 +243,7 @@ static void redfin_init(MachineState * machine)
     xbl_sec_instrument();
     sbl1_instrument();
     tz_instrument();
+    xbl_uefi_instrument();
 }
 
 static void redfin_machine_init(MachineClass *mc)
