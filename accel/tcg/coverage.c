@@ -27,44 +27,48 @@ size_t comp_coverage_record_elem_size = 1;
 /*comp_coverage_record_size = #elems * elem_sz */
 size_t comp_coverage_record_elems = 4096;
 
-bool edge_coverage_record_enabled = false;
-bool comp_coverage_record_enabled = false;
+bool edge_coverage_record_tcg_enabled = false;
+bool comp_coverage_record_tcg_enabled = false;
 
 int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp) {
+    CPUState *cpu;
 
-    edge_coverage_record_elem_size = qemu_opt_get_number(opts, "edge_elem_sz", 1);
-    edge_coverage_record_elems = qemu_opt_get_number(opts, "edge_elems", 4096);
-
-    comp_coverage_record_elem_size = qemu_opt_get_number(opts, "comp_elem_sz", 1);
-    comp_coverage_record_elems = qemu_opt_get_number(opts, "comp_elems", 4096);
-    
-    /* buffer sizes need to be powers of 2*/
-    assert((edge_coverage_record_elems & (edge_coverage_record_elems - 1)) == 0 );
-    assert((comp_coverage_record_elems & (comp_coverage_record_elems - 1)) == 0 );
-    /* elem sizes are byte...qword */
-    assert(edge_coverage_record_elem_size == 1 || 
+    if( qemu_opt_get_number(opts, "edge_elems", 0) ) {
+        edge_coverage_record_elem_size = qemu_opt_get_number(opts, "edge_elem_sz", 1);
+        edge_coverage_record_elems = qemu_opt_get_number(opts, "edge_elems", 4096);
+        /* buffer sizes need to be powers of 2*/
+        assert((edge_coverage_record_elems & (edge_coverage_record_elems - 1)) == 0 );
+        assert(edge_coverage_record_elem_size == 1 || 
             edge_coverage_record_elem_size == 2 || 
             edge_coverage_record_elem_size == 4);
-    assert(comp_coverage_record_elem_size == 1 || 
+        edge_coverage_record_tcg_enabled = true;
+
+        CPU_FOREACH(cpu) {
+            cpu->neg.coverage_rec.edge_rec.rec_buf_hitmap = aligned_alloc(0x1000, edge_coverage_record_elems * edge_coverage_record_elem_size);
+            cpu->neg.coverage_rec.edge_rec.cached_first_value = 0;
+            reset_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
+            if( qemu_opt_get_bool(opts, "edge_enable", false) ){
+                enable_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
+            }
+        }
+    }
+
+    if( qemu_opt_get_number(opts, "comp_elems", 0) ) {
+        comp_coverage_record_elem_size = qemu_opt_get_number(opts, "comp_elem_sz", 1);
+        comp_coverage_record_elems = qemu_opt_get_number(opts, "comp_elems", 4096);
+        assert((comp_coverage_record_elems & (comp_coverage_record_elems - 1)) == 0 );
+        assert(comp_coverage_record_elem_size == 1 || 
             comp_coverage_record_elem_size == 2 || 
             comp_coverage_record_elem_size == 4);
+        comp_coverage_record_tcg_enabled = true;
 
-    CPUState *cpu;
-    /* all CPUs have same coverage params*/
-    CPU_FOREACH(cpu) {
-        cpu->neg.coverage_rec.edge_rec.rec_buf_hitmap = aligned_alloc(0x1000, edge_coverage_record_elems * edge_coverage_record_elem_size);
-        cpu->neg.coverage_rec.edge_rec.cached_first_value = 0;
-        reset_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
-        cpu->neg.coverage_rec.comp_rec.rec_buf_hitmap = aligned_alloc(0x1000, comp_coverage_record_elems * comp_coverage_record_elem_size);
-        cpu->neg.coverage_rec.comp_rec.cached_first_value = 0;
-        reset_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
-        if( qemu_opt_get_bool(opts, "comp_enable", false) ){
-            enable_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
-            comp_coverage_record_enabled = true;
-        }
-        if( qemu_opt_get_bool(opts, "edge_enable", false) ){
-            enable_edge_coverage_single_cpu(&cpu->neg.coverage_rec);
-            edge_coverage_record_enabled = true;
+        CPU_FOREACH(cpu) {
+            cpu->neg.coverage_rec.comp_rec.rec_buf_hitmap = aligned_alloc(0x1000, comp_coverage_record_elems * comp_coverage_record_elem_size);
+            cpu->neg.coverage_rec.comp_rec.cached_first_value = 0;
+            reset_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
+            if( qemu_opt_get_bool(opts, "comp_enable", false) ){
+                enable_comp_coverage_single_cpu(&cpu->neg.coverage_rec);
+            }
         }
     }
 
