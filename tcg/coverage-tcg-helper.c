@@ -19,6 +19,8 @@ __thread void *current_disasctx=0;
 static inline uint32_t crc32_i64(uint64_t in) {
 #if (defined(__x86_64__) || defined(__i386__))
  	return (uint32_t)_mm_crc32_u64(0, in);
+#else
+	#error "TODO: Define CRC32 when no _mm_crc32_u64 instruction (x86) is available"
 #endif
 }
 
