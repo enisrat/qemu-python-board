@@ -175,11 +175,11 @@ typedef uint64_t TCGRegSet;
 #ifndef TCG_TARGET_HAS_fast_hash_i64
 #define TCG_TARGET_HAS_fast_hash_i64    0
 #endif
-#ifndef TCG_TARGET_HAS_add_cisc_i64
-#define TCG_TARGET_HAS_add_cisc_i64    0
+#ifndef TCG_TARGET_HAS_add_mem_idx_i64
+#define TCG_TARGET_HAS_add_mem_idx_i64    0
 #endif
-#ifndef TCG_TARGET_HAS_add_cisc_i32
-#define TCG_TARGET_HAS_add_cisc_i32    0
+#ifndef TCG_TARGET_HAS_add_mem_idx_i32
+#define TCG_TARGET_HAS_add_mem_idx_i32    0
 #endif
 
 
