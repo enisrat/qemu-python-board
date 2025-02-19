@@ -51,13 +51,11 @@ void tcg_gen_add_mem_idx_i64(TCGv_i64 base, TCGv_i64 index, TCGv_i64 val, int el
  * Generate minimal code to set:
  * vCPU...edge hitmap[ CRC32(pc|out_edge_id) ] += 1
  */
-void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc) {
+void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id) {
     if(edge_coverage_record_tcg_enabled) {
 
         TCGv_i64 hashofs = tcg_temp_new_i64();
         tcg_gen_fast_hash_i64((TCGv_i32)hashofs, out_edge_id, pc); 
-        if(discard_pc)
-            tcg_gen_discard_i64(pc);
 
         TCGv_ptr baseptr = tcg_temp_new_ptr();
         tcg_gen_ld_ptr(baseptr, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_rec.rec_buf_hitmap) -

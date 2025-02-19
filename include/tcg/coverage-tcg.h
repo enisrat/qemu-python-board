@@ -32,8 +32,8 @@ void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src, TCGv_i64 src2);
  * 
  * Both input parameters are hashed together.
  */
-void tcg_gen_rec_edge_i32(TCGv_i32 pc, TCGv_i32 out_edge_id, bool discard_pc);
-void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc);
+void tcg_gen_rec_edge_i32(TCGv_i32 pc, TCGv_i32 out_edge_id);
+void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id);
 
 /**
  * ADD [mem+idx*str+ofs] instruction. THis is declared because it optimizes well for x86.
@@ -41,10 +41,5 @@ void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id, bool discard_pc);
  */
 void tcg_gen_add_mem_idx_i64(TCGv_i64 base, TCGv_i64 index, TCGv_i64 val, int elem_sz, int ofs);
 
-/**
- * Record matching bytes in COMPARE instructions to guide Fuzzer. NOT USED, generates too much code, use HELPER instead.
- */
-void tcg_gen_rec_cmp_i32(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1, bool discard_pc);
-void tcg_gen_rec_cmp_i64(TCGv_i64 pc, TCGv_i64 a0, TCGv_i64 a1, bool discard_pc);
 
 #endif /* COVERAGE_TCG_H */
