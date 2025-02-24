@@ -27,6 +27,7 @@ bool add_instrument(vaddr pc, int cpu_index, InstrumentCallback cb, void *opaque
 
 bool remove_instrument(vaddr pc, int cpu_index);
 
+/* Put a call to this last in your machine initialization code */
 void init_instrument_htable(void);
 
 

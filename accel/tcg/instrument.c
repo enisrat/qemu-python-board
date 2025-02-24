@@ -1,5 +1,6 @@
 #include "qemu/osdep.h"
 #include "tcg/instrument.h"
+#include "hw/core/cpu.h"
 #include "stdbool.h"
 
 
@@ -92,6 +93,13 @@ bool remove_instrument(vaddr pc, int cpu_index) {
 
 void init_instrument_htable(void) {
 	qht_init(&htable, &cmp, 1<<15, QHT_MODE_AUTO_RESIZE);
+
+	CPUState *cpu;
+	// below is why you should put the call to init_instrument_htable
+	// last in your machine initialization code.
+	CPU_FOREACH(cpu) {
+		cpu->last_instrumented_pc_addr = -1;
+	}
 };
 
 
