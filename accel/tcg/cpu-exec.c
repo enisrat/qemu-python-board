@@ -971,11 +971,16 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
             uint32_t flags, cflags;
 
             /* Instrument Breakpoint pending?
-             * Handle this before all other stuff
-             */
+             * Handle this before all other stuff */
             pc = cpu->cc->get_pc(cpu);
-            if( call_instrument_cb(cpu, pc) ) {
-                last_tb = NULL;
+            if( cpu->last_instrumented_pc_addr != pc && call_instrument_cb(cpu, pc) ) {
+                cpu->last_instrumented_pc_addr = pc;
+                /* we just make an extra round through the outer loop to see
+                    if an exception was injected in the instrumentation. 
+                    Also, chaining the current TB is prevented. */
+                break;  
+            } else {
+                cpu->last_instrumented_pc_addr = -1;
             }
 
             cpu_get_tb_cpu_state(cpu_env(cpu), &pc, &cs_base, &flags);

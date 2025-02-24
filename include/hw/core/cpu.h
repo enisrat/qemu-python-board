@@ -566,6 +566,12 @@ struct CPUState {
     /* track IOMMUs whose translations we've cached in the TCG TLB */
     GArray *iommu_notifiers;
 
+    /* Instrument Breakpoint last encountered. 
+     * As these instrumentations should be completely transparent to both QEMU and GDB,
+     * we use this little trick to avoid a procedure like: remove BP, singlestep, add BP again
+     */
+    vaddr last_instrumented_pc_addr;
+
     /*
      * MUST BE LAST in order to minimize the displacement to CPUArchState.
      */
