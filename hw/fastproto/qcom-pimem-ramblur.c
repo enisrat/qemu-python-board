@@ -39,7 +39,7 @@ struct qcom_pimem_ramblurState {
 
     char _vmstate_saved_offset;
     /* members below this point are SAVED in the vmstate */
-    uint32_t state[0x100/4];
+    uint32_t state[0x1100/4];
 };
 
 static Property qcom_pimem_ramblur_properties[] = {
@@ -70,7 +70,7 @@ static uint64_t qcom_pimem_ramblur_mmio1_read (void *opaque, hwaddr addr, unsign
     }
 
     switch (addr) {
-    case 0 ... 0x100:
+    case 0 ... 0x1100:
         ret = s->state[addr >> 2];
         break;
     default:
@@ -85,9 +85,10 @@ static void qcom_pimem_ramblur_mmio1_write (void *opaque, hwaddr addr, uint64_t 
     qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
 
     switch (addr) {
-
+    case 0 ... 0x1100:
+       s->state[addr>>2] = value;
     default:
-        s->state[addr>>2] = value;
+        break;
     }
 }
 static const MemoryRegionOps qcom_pimem_ramblur_ops = {
