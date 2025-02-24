@@ -111,10 +111,10 @@ static void tzbsp_hash_init(CPUState *cs, vaddr pc, void *opaque)
     hashmode = cpu->env.xregs[0];
     hash_next_update = hashbuf;
     if (hashmode != 3 && hashmode != 4) {
-        qemu_log_mask(LOG_TRACE, "tzbsp_hash_init unknown mode %d\n", hashmode);
+        qemu_log_mask(LOG_TRACE, "%s unknown mode %d\n", __func__, hashmode);
         return;
     }
-    qemu_log_mask(LOG_TRACE, "tzbsp_hash_init %d\n", hashmode);
+    qemu_log_mask(LOG_TRACE, "%s %d\n", __func__, hashmode);
     cpu->env.xregs[0] = 0;
     cpu->env.pc = cpu->env.xregs[30];
 }
@@ -122,9 +122,9 @@ static void tzbsp_hash_init(CPUState *cs, vaddr pc, void *opaque)
 static void tzbsp_hash_update(CPUState *cs, vaddr pc, void *opaque)
 {
     ARMCPU *cpu = ARM_CPU(cs);
-    uint64_t src = ldq_le_phys(&address_space_memory, cpu->env.xregs[1]);
+    uint64_t src = cpu->env.xregs[1];
     uint64_t len = cpu->env.xregs[2];
-    qemu_log_mask(LOG_TRACE, "tzbsp_hash_update len %d\n", len);
+    qemu_log_mask(LOG_TRACE, "%s len %d\n", __func__, len);
     cpu_memory_rw_debug(cs, src, hash_next_update, len, false);
     hash_next_update += len;
     cpu->env.xregs[0] = 0;
@@ -143,15 +143,71 @@ static void tzbsp_hash_final(CPUState *cs, vaddr pc, void *opaque)
     else if (hashmode == 4) 
         qalg =  QCRYPTO_HASH_ALG_SHA384;
     else {
-        qemu_log_mask(LOG_TRACE, "tzbsp_hash_final unknown mode %d\n", hashmode);
+        qemu_log_mask(LOG_TRACE, "%s unknown mode %d\n", __func__,  hashmode);
         return;
     }
     qcrypto_hash_bytes(qalg, hashbuf, hash_next_update - hashbuf, &digest, &sz, &error_fatal);
 
     cpu_memory_rw_debug(cs, ptr1, digest, sz, true);
-    qemu_log_mask(LOG_TRACE, "tzbsp_hash_final len %d\n", sz);
+    qemu_log_mask(LOG_TRACE, "%s len %d\n", __func__, sz);
     g_free(digest);
     hash_next_update = hashbuf;
+    cpu->env.xregs[0] = 0;
+    cpu->env.pc = cpu->env.xregs[30]; 
+}
+
+static int hashmode2 = 0;
+static char *hashbuf2 = NULL; //just big enough for the largest hash
+static char *hash_next_update2;
+
+static void tzbsp2_hash_init(CPUState *cs, vaddr pc, void *opaque)
+{
+    if(!hashbuf2){
+        hashbuf2 = g_malloc(1<<22);
+    }
+    ARMCPU *cpu = ARM_CPU(cs);
+    hashmode2 = cpu->env.xregs[1];
+    hash_next_update2 = hashbuf2;
+    if (hashmode2 != 3) {
+        qemu_log_mask(LOG_TRACE, "%s unknown mode %d\n", __func__, hashmode2);
+        return;
+    }
+    qemu_log_mask(LOG_TRACE, "%s %d\n", __func__, hashmode2);
+    cpu->env.xregs[0] = 0;
+    cpu->env.pc = cpu->env.xregs[30];
+}
+
+static void tzbsp2_hash_update(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    uint64_t src = cpu->env.xregs[1];
+    uint64_t len = cpu->env.xregs[2];
+    qemu_log_mask(LOG_TRACE, "%s len %d\n", __func__, len);
+    cpu_memory_rw_debug(cs, src, hash_next_update2, len, false);
+    hash_next_update2 += len;
+    cpu->env.xregs[0] = 0;
+    cpu->env.pc = cpu->env.xregs[30];
+}
+
+static void tzbsp2_hash_final(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    uint64_t ptr1 = cpu->env.xregs[1];
+    char *digest = NULL;
+    QCryptoHashAlgorithm qalg;
+    size_t sz = 0;
+    if (hashmode2 == 3)
+        qalg = QCRYPTO_HASH_ALG_SHA384;
+    else {
+        qemu_log_mask(LOG_TRACE, "%s unknown mode %d\n", __func__,  hashmode2);
+        return;
+    }
+    qcrypto_hash_bytes(qalg, hashbuf2, hash_next_update2 - hashbuf2, &digest, &sz, &error_fatal);
+
+    cpu_memory_rw_debug(cs, ptr1, digest, sz, true);
+    qemu_log_mask(LOG_TRACE, "%s len %d\n", __func__, sz);
+    g_free(digest);
+    hash_next_update2 = hashbuf2;
     cpu->env.xregs[0] = 0;
     cpu->env.pc = cpu->env.xregs[30]; 
 }
@@ -159,7 +215,7 @@ static void tzbsp_hash_final(CPUState *cs, vaddr pc, void *opaque)
 static void print_smc(CPUState *cs, vaddr pc, void *opaque)
 {
     ARMCPU *cpu = ARM_CPU(cs);
-    qemu_log_mask(LOG_TRACE, "EL1 SMC: %d\n", cpu->env.xregs[0]);
+    qemu_log_mask(LOG_TRACE, "%s: %llx\n", __func__,  cpu->env.xregs[0]);
 }
 
 // externally defined
@@ -181,6 +237,10 @@ void tz_instrument()
             0x8879CB46C,
             0x887A13330,*/
     add_instrument(0x887A249A8, -1, retN, 0); // rpmh_register_isr
+    add_instrument(0x887A2432C, -1, retN, 0); // some internal rpmh stuff
+    add_instrument(0x887A240A4, -1, retN, 0); // rpmh_churn_all
+    add_instrument(0x887A24168, -1, retN, 0); // rpmh_churn_single
+
     add_instrument(0x887A200A8, -1, retN, 0); // PDC
     add_instrument(0x887A290EC, -1, retN, 0); // VPP
     add_instrument(0x887A33E10, -1, retN, 0);
@@ -200,6 +260,14 @@ void tz_instrument()
     add_instrument(0x887A88554, -1, tzbsp_hash_update, NULL); // tzbsp_hash_update
     add_instrument(0x887A88624, -1, tzbsp_hash_final, NULL); // tzbsp_hash_final
 
+    //another set of hashing funcs
+    add_instrument(0x887A509BC, -1, tzbsp2_hash_init, NULL); 
+    add_instrument(0x887A50AD4, -1, tzbsp2_hash_update, NULL); 
+    add_instrument(0x887A50B8C, -1, tzbsp2_hash_final, NULL);
+    add_instrument(0x887A50A60, -1, retN, 0); //hash_free
+
+    add_instrument(0x887A4D940, -1, retN, 0x2ECB770); //verify certchain
+
     add_instrument(0x8879D150C, -1, tz_get_loglevel, NULL); // TZ EL1
     add_instrument(0x887A7A718, -1, retN, 1); // is_Anti_rollback_enabled
     add_instrument(0x887A3DC3C, -1, retN, 0); // some AC functionality
@@ -207,4 +275,6 @@ void tz_instrument()
     add_instrument(0x14680000, -1, hook_qsee_start, NULL); // hook_qsee_start
 
     add_instrument(0x887A99790, -1, print_smc, 0); // print_smc
+
+    
 }

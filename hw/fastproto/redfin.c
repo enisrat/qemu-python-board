@@ -49,7 +49,7 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
      * Note that the num-irq property counts both internal and external
      * interrupts; there are always 32 of the former (mandated by GIC spec).
      */
-    qdev_prop_set_uint32(gic, "num-irq", num_irqs + 32);
+    qdev_prop_set_uint32(gic, "num-irq", num_irqs + smp_cpus*32);
     qdev_prop_set_bit(gic, "has-security-extensions", true);
 
     // may need adjusting
@@ -121,7 +121,7 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
 
 static DeviceState *create_ic()
 {
-    return create_gicv3(192, 0x17a00000, 0x17a60000);
+    return create_gicv3(384, 0x17a00000, 0x17a60000);
 }
 
 // pull in modularized code

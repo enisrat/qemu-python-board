@@ -1471,7 +1471,7 @@ uint64_t arm_build_mp_affinity(int idx, uint8_t clustersz)
 {
     uint32_t Aff1 = idx / clustersz;
     uint32_t Aff0 = idx % clustersz;
-    return (Aff1 << ARM_AFF1_SHIFT) | Aff0;
+    return (Aff1 << ARM_AFF1_SHIFT) | Aff0 | 0xff0000;  //PATCHED FOR REDFIN: AFF2: 0xFF
 }
 
 uint64_t arm_cpu_mp_affinity(ARMCPU *cpu)
