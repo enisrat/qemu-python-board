@@ -12,7 +12,7 @@ typedef struct  {
 } InstrBreakpoint;
 
 
-struct qht htable;
+struct qht htable = {0};
 
 static bool pc_is_instrumented(const void *p, const void *d) {
 	const InstrBreakpoint *a = p;
@@ -37,27 +37,34 @@ static bool cmp(const void *ap, const void *bp)
 };
 
 bool check_instrument(vaddr pc, int cpu_index) {
+	if(htable.map != NULL){
+		InstrBreakpoint desc;
+		desc.pc = pc;
+		desc.cpu_index = cpu_index;
 
-	InstrBreakpoint desc;
-	desc.pc = pc;
-	desc.cpu_index = cpu_index;
-
-	InstrBreakpoint *b = qht_lookup_custom(&htable, &desc, pc, pc_is_instrumented);
-	return b != NULL;
+		InstrBreakpoint *b = qht_lookup_custom(&htable, &desc, pc, pc_is_instrumented);
+		return b != NULL;
+	} else{
+		return false;
+	}
 };
 
 bool call_instrument_cb(CPUState *cs, vaddr pc) {
-	InstrBreakpoint desc;
-	desc.pc = pc;
-	desc.cpu_index = cs->cpu_index;
+	if(htable.map != NULL){
+		InstrBreakpoint desc;
+		desc.pc = pc;
+		desc.cpu_index = cs->cpu_index;
 
-	InstrBreakpoint *b = qht_lookup_custom(&htable, &desc, pc, pc_is_instrumented);
+		InstrBreakpoint *b = qht_lookup_custom(&htable, &desc, pc, pc_is_instrumented);
 
-	if(b != NULL) {
-		b->cb(cs, pc, b->opaque);
-		return true;
-	}
-	return false;
+		if(b != NULL) {
+			b->cb(cs, pc, b->opaque);
+			return true;
+		}
+		return false;
+	} else{
+		return false;
+	};
 };
 
 /* Add a instrumentation "breakpoint" to be compiled into intermediate TCG
