@@ -55,7 +55,8 @@ void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id) {
     if(edge_coverage_record_tcg_enabled) {
 
         TCGv_i64 hashofs = tcg_temp_new_i64();
-        tcg_gen_fast_hash_i64((TCGv_i32)hashofs, out_edge_id, pc); 
+        tcg_gen_mov_i64(hashofs, out_edge_id);
+        tcg_gen_fast_hash_i64((TCGv_i32)hashofs, hashofs, pc);
 
         TCGv_ptr baseptr = tcg_temp_new_ptr();
         tcg_gen_ld_ptr(baseptr, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_rec.rec_buf_hitmap) -
@@ -65,15 +66,10 @@ void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id) {
                                             (int) sizeof(CPUNegativeOffsetState)));
 
         tcg_gen_and_i64(hashofs, hashofs, mask);
-        /*if(edge_coverage_record_elem_size == 2) {
-            tcg_gen_shl_i32(hashofs, hashofs, 1);
-        } else if(edge_coverage_record_elem_size == 4) {
-            tcg_gen_shl_i32(hashofs, hashofs, 2);
-        }*/
-        //tcg_gen_add_i64(baseptr, baseptr, hashofs);
         tcg_gen_add_mem_idx_i64((TCGv_i64)baseptr, hashofs, tcg_constant_i64(1), edge_coverage_record_elem_size, 0);
 
         /*
+        //liveness pass will take care of that
         tcg_temp_free_i64(hashofs);
         tcg_temp_free_ptr(baseptr);
         tcg_temp_free_i64(mask);*/

@@ -2523,12 +2523,12 @@ static void tcg_out_exit_tb(TCGContext *s, uintptr_t a0)
 }
 
 static void tcg_out_fast_hash_i64(TCGContext *s, TCGReg dst, TCGReg src1, TCGReg src2) {
-    tcg_out_mov(s, TCG_TYPE_I32, dst, src1);
+    tcg_debug_assert( dst == src1 );//@TODO: should always be true, due to constraints set above
     tcg_debug_assert( dst != src2 );
     /*CRC32 r64,r/m64 (SSE4.2)*/
     tcg_out_modrm(s, 0xf1 | P_SIMDF2 | P_EXT | P_EXT38 | P_REXW, dst, src2);
+    tcg_out_bswap32(s, dst);
 }
-
 
 /* add byte|word|dword|qword ptr [base + index*elem_sz + ofs], val*/
 static void tcg_out_add_mem_idx_i64(TCGContext *s, TCGReg base, TCGReg index, TCGReg val, int elem_sz, int ofs,  bool val_is_const) {
@@ -2538,7 +2538,7 @@ static void tcg_out_add_mem_idx_i64(TCGContext *s, TCGReg base, TCGReg index, TC
             if(val_is_const){
                 tcg_out_modrm_sib_offset(s, OPC_ARITH_EbIb | P_REXB_RM, ARITH_ADD, base, index, 0, ofs);
                 int c = (int)val;
-                assert(c < 128 && c >= -128); //because of P_REXB_R
+                assert(c < 128 && c >= -128); //because of P_REXB_RM
                 tcg_out8(s, c);
             } else{
                 tcg_out_modrm_sib_offset(s, P_REXB_RM, val, base, index, 0, ofs);
@@ -3693,9 +3693,9 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
         return C_O1_I3(x, x, x, x);
 
     case INDEX_op_fast_hash_i32:
-        return C_N1_I2(r, r, r);
+        return C_O1_I2(r, 0, r);
     case INDEX_op_fast_hash_i64:
-        return C_N1_I2(r, r, r);
+        return C_O1_I2(r, 0, r);
     case INDEX_op_add_mem_idx_i32:
         return C_O0_I3(r, r, ri);
     case INDEX_op_add_mem_idx_i64:
