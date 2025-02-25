@@ -74,7 +74,7 @@ static uint64_t qcom_pimem_ramblur_mmio1_read (void *opaque, hwaddr addr, unsign
         ret = s->state[addr >> 2];
         break;
     default:
-        ret = s->state[addr>>2];
+        ret = 0;
     }
 
     qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
