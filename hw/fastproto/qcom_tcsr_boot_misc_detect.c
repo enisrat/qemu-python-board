@@ -41,7 +41,7 @@ struct qcom_tcsr_boot_misc_detectState
 
     /* Put your NOT SAVED members here */
 
-    char _vmstate_saved_offset;
+    void* _vmstate_saved_offset;
     /* members below this point are SAVED in the vmstate */
 };
 

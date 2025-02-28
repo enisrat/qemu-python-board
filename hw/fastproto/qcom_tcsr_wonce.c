@@ -40,7 +40,7 @@ struct qcom_tcsr_wonceState {
 
     /* Put your NOT SAVED members here */
 
-    char _vmstate_saved_offset;
+    void* _vmstate_saved_offset;
     /* members below this point are SAVED in the vmstate */
     uint32_t state[0x100 >> 2];
 };

@@ -40,7 +40,7 @@ struct qcom_0xc600000State {
 
     /* Put your NOT SAVED members here */
 
-    char _vmstate_saved_offset;
+    void* _vmstate_saved_offset;
     /* members below this point are SAVED in the vmstate */
 
 };
