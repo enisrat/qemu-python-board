@@ -1510,6 +1510,7 @@ static void ufs_exec_req(UfsRequest *req)
         return;
     }
 
+
     switch (req->req_upiu.header.trans_type) {
     case UFS_UPIU_TRANSACTION_NOP_OUT:
         req_result = ufs_exec_nop_cmd(req);
@@ -1803,7 +1804,7 @@ static void ufs_realize(DeviceState *pci_dev, Error **errp)
     sysbus_init_mmio(SYS_BUS_DEVICE(pci_dev), &u->iomem);
 }
 
-static void ufs_exit(PCIDevice *pci_dev)
+static void ufs_exit(DeviceState *pci_dev)
 {
     UfsHc *u = UFS(pci_dev);
 
@@ -1836,11 +1837,48 @@ static Property ufs_props[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
-static const VMStateDescription ufs_vmstate = {
-    .name = "ufs",
-    .unmigratable = 1,
-};
 
+
+static int ufs_hc_pre_load(void *opaque)
+{
+    ufs_exit(opaque);
+    return 0;
+}
+
+static int ufs_hc_post_load(void *opaque, int version_id)
+{
+    ufs_init_state(opaque);
+    return 0;
+}
+
+#define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
+static const VMStateDescription vmstate_ufs_hc = {
+    .name = "ufs-hc",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .pre_load = ufs_hc_pre_load,
+    .post_load = ufs_hc_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_BUFFER_UNSAFE_INFO_TEST(reg, UfsHc, 0, 1, vmstate_info_buffer, FIELD_SIZEOF(UfsHc, reg)),
+        VMSTATE_BUFFER_UNSAFE_INFO_TEST(mcq_reg, UfsHc, 0, 1, vmstate_info_buffer, FIELD_SIZEOF(UfsHc, mcq_reg)),
+        VMSTATE_BUFFER_UNSAFE_INFO_TEST(mcq_op_reg, UfsHc, 0, 1, vmstate_info_buffer, FIELD_SIZEOF(UfsHc, mcq_op_reg)),
+        VMSTATE_BUFFER_UNSAFE_INFO_TEST(params, UfsHc, 0, 1, vmstate_info_buffer, FIELD_SIZEOF(UfsHc, params)),
+        VMSTATE_UINT32(reg_size, UfsHc),
+
+        // Array of pointers to UfsLu objects
+        /*VMSTATE_ARRAY_OF_POINTER_TO_STRUCT(lus, UfsHc, UFS_MAX_LUS, 0, vmstate_ufs_lu, UfsLu),
+        VMSTATE_STRUCT(report_wlu, UfsHc, 0, vmstate_ufs_lu, UfsLu),
+        VMSTATE_STRUCT(dev_wlu, UfsHc, 0, vmstate_ufs_lu, UfsLu),
+        VMSTATE_STRUCT(rpmb_wlu, UfsHc, 0, vmstate_ufs_lu, UfsLu),*/
+
+        VMSTATE_BUFFER_UNSAFE_INFO_TEST(device_desc, UfsHc, 0, 1, vmstate_info_buffer, FIELD_SIZEOF(UfsHc, device_desc)),
+        VMSTATE_BUFFER_UNSAFE_INFO_TEST(geometry_desc, UfsHc, 0, 1, vmstate_info_buffer, FIELD_SIZEOF(UfsHc, geometry_desc)),
+        VMSTATE_BUFFER_UNSAFE_INFO_TEST(attributes, UfsHc, 0, 1, vmstate_info_buffer, FIELD_SIZEOF(UfsHc, attributes)),
+        VMSTATE_BUFFER_UNSAFE_INFO_TEST(flags, UfsHc, 0, 1, vmstate_info_buffer, FIELD_SIZEOF(UfsHc, flags)),
+
+        VMSTATE_END_OF_LIST()
+    },
+};
 static void ufs_class_init(ObjectClass *oc, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(oc);
@@ -1855,7 +1893,7 @@ static void ufs_class_init(ObjectClass *oc, void *data)
     set_bit(DEVICE_CATEGORY_STORAGE, dc->categories);
     dc->desc = "Universal Flash Storage";
     device_class_set_props(dc, ufs_props);
-    dc->vmsd = &ufs_vmstate;
+    dc->vmsd = &vmstate_ufs_hc;
 }
 
 static bool ufs_bus_check_address(BusState *qbus, DeviceState *qdev,
