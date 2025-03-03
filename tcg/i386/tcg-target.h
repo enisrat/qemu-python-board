@@ -195,6 +195,7 @@ typedef enum {
 #define TCG_TARGET_HAS_qemu_st8_i32     0
 #define TCG_TARGET_HAS_fast_hash_i64    have_avx1
 #define TCG_TARGET_HAS_add_mem_idx_i64     1
+#define TCG_TARGET_HAS_subs_i64     1
 #else
 #define TCG_TARGET_HAS_qemu_st8_i32     1
 #endif

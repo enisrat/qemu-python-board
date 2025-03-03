@@ -261,6 +261,14 @@ void tcg_gen_umin_i64(TCGv_i64, TCGv_i64 arg1, TCGv_i64 arg2);
 void tcg_gen_umax_i64(TCGv_i64, TCGv_i64 arg1, TCGv_i64 arg2);
 void tcg_gen_abs_i64(TCGv_i64, TCGv_i64);
 
+/**result -= subtrahend
+ * sets flags in flags1: S...{all 0s}...Z  and
+ * flags2: O...{all 0s}...C
+ * S: result has negative sign, Z: result==0, O=result has signed overflow, C=result has carry
+ * Except for the flag bits 0 and bit 63, all other bits are always 0
+ */
+void tcg_gen_subs_i64(TCGv_i32 result, TCGv_i64 flags1, TCGv_i64 flags2, TCGv_i64 subtrahend);
+
 /* Replicate a value of size @vece from @in to all the lanes in @out */
 void tcg_gen_dup_i64(unsigned vece, TCGv_i64 out, TCGv_i64 in);
 

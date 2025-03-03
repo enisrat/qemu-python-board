@@ -197,6 +197,8 @@ DEF(fast_hash_i64, 1, 2, 0, IMPL64 | IMPL(TCG_TARGET_HAS_fast_hash_i64))
 DEF(add_mem_idx_i32, 0, 3, 2, IMPL(TCG_TARGET_HAS_add_mem_idx_i32))
 DEF(add_mem_idx_i64, 0, 3, 2, IMPL64 | IMPL(TCG_TARGET_HAS_add_mem_idx_i64))
 
+/* subtract two registers while seeting flags in two other output registers */
+DEF(subs_i64, 3, 2, 0, IMPL64 | IMPL(TCG_TARGET_HAS_subs_i64)),
 
 #define DATA64_ARGS  (TCG_TARGET_REG_BITS == 64 ? 1 : 2)
 

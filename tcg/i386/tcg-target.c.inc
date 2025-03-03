@@ -2530,6 +2530,22 @@ static void tcg_out_fast_hash_i64(TCGContext *s, TCGReg dst, TCGReg src1, TCGReg
     tcg_out_bswap32(s, dst);
 }
 
+static void tcg_out_subs_i64(TCGContext *s, TCGArg result_reg, TCGArg flag_reg1, TCGArg flag_reg2, TCGArg input_reg) {
+    // Emit the SUB instruction
+    tcg_out_modrm(s, OPC_SUB_GvEv + REX_W, result_reg, input_reg);
+
+    // Set the condition flags
+    //flag_reg1: S...Z
+    //flag_reg2: O...C
+    //Only bit 63 and bit 0 are used, all bits between are set to zero
+    tcg_out_modrm(s, OPC_SETCC + CC_S, flag_reg1);
+    tcg_out_shifti(s, SHIFT_SHL, flag_reg1, 63);
+    tcg_out_modrm(s, OPC_SETCC + CC_Z, flag_reg1);
+    tcg_out_modrm(s, OPC_SETCC + CC_O, flag_reg2);
+    tcg_out_shifti(s, SHIFT_SHL, flag_reg2, 63);
+    tcg_out_modrm(s, OPC_SETCC + CC_C, flag_reg2);
+}
+
 /* add byte|word|dword|qword ptr [base + index*elem_sz + ofs], val*/
 static void tcg_out_add_mem_idx_i64(TCGContext *s, TCGReg base, TCGReg index, TCGReg val, int elem_sz, int ofs,  bool val_is_const) {
 
@@ -3042,6 +3058,9 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
     case INDEX_op_add_mem_idx_i64:
         tcg_out_add_mem_idx_i64(s, args[0], args[1], args[2], args[3], args[4], const_args[2]);
         break;
+    case INDEX_op_subs_i64:
+        tcg_out_subs_i64(s, args[0], args[1], args[2], args[3]);
+        break
 
     case INDEX_op_mov_i32:  /* Always emitted via tcg_out_mov.  */
     case INDEX_op_mov_i64:

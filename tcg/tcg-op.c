@@ -3354,3 +3354,8 @@ void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src, TCGv_i64 src2)
 {
     tcg_gen_op3(INDEX_op_fast_hash_i64, tcgv_i32_arg(dst), tcgv_i64_arg(src), tcgv_i64_arg(src2));
 }
+
+void tcg_gen_subs_i64(TCGv_i32 result, TCGv_i64 flags1, TCGv_i64 flags2, TCGv_i64 subtrahend)
+{
+    tcg_gen_op4(INDEX_op_subs_i64, tcgv_i64_arg(result), tcgv_i64_arg(flags1), tcgv_i64_arg(flags2), tcgv_i64_arg(subtrahend));
+}
