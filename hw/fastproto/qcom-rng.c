@@ -39,7 +39,7 @@ struct qcom_rngState {
 
     void* _vmstate_saved_offset;
     /* members below this point are SAVED in the vmstate */
-	uint32_t state[0x140/4];
+	uint32_t state[0x148/4];
 };
 
 static Property qcom_rng_properties[] = {
