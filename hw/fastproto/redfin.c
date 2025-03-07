@@ -257,6 +257,7 @@ static void redfin_machine_init(MachineClass *mc)
     mc->valid_cpu_types = valid_cpu_types;
     mc->max_cpus = 8;
     mc->default_ram_size = 1 * GiB;
+    mc->minimum_page_bits = 12;
     mc->init = redfin_init;
     mc->block_default_type = IF_IDE;
     mc->units_per_default_bus = 1;
