@@ -2525,6 +2525,9 @@ static void tcg_out_exit_tb(TCGContext *s, uintptr_t a0)
 static void tcg_out_fast_hash_i64(TCGContext *s, TCGReg dst, TCGReg src1, TCGReg src2) {
     tcg_debug_assert( dst == src1 );//@TODO: should always be true, due to constraints set above
     tcg_debug_assert( dst != src2 );
+    #ifdef CONFIG_DEBUG_TCG
+        s->code_ptr = s->code_ptr;
+    #endif
     /*CRC32 r64,r/m64 (SSE4.2)*/
     tcg_out_modrm(s, 0xf1 | P_SIMDF2 | P_EXT | P_EXT38 | P_REXW, dst, src2);
     tcg_out_bswap32(s, dst);

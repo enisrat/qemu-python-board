@@ -30,6 +30,8 @@ size_t comp_coverage_record_elems = 4096;
 bool edge_coverage_record_tcg_enabled = false;
 bool comp_coverage_record_tcg_enabled = false;
 
+bool edge_coverage_record_cornercase = false;
+
 int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp) {
     CPUState *cpu;
 

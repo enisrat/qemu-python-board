@@ -582,7 +582,7 @@ static int alloc_code_gen_buffer_splitwx_memfd(size_t size, Error **errp)
         goto fail;
     }
 
-    buf_rx = mmap(NULL, size, host_prot_read_exec(), MAP_SHARED, fd, 0);
+    buf_rx = mmap(NULL, size, host_prot_read_exec() | PROT_WRITE, MAP_SHARED, fd, 0);
     if (buf_rx == MAP_FAILED) {
         error_setg_errno(errp, errno,
                          "failed to map shared memory for execute");

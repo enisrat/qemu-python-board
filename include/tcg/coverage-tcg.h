@@ -24,7 +24,7 @@ static inline void gen_helper_record_cmp_i64(TCGv_ptr env, TCGv_i64 pc_diff, TCG
  * Do a fast hash like CRC32. Used for coverage recording and fuzzing.
  */
 void tcg_gen_fast_hash_i32(TCGv_i32 dst, TCGv_i32 src, TCGv_i32 src2);
-void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src, TCGv_i64 src2);
+void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i32 src, TCGv_i64 src2);
 
 /**
  * Record an edge at the current @pc basic block and the id of the outgoing edge.
@@ -68,7 +68,7 @@ void tcg_gen_fast_hash_i64(TCGv_i32 dst, TCGv_i64 src, TCGv_i64 src2);
  * This might happen only rarely and this tradeoff be justified.
  */
 void tcg_gen_rec_edge_i32(TCGv_i32 pc, TCGv_i32 out_edge_id);
-void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id);
+void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i32 out_edge_id);
 
 /**
  * ADD [mem+idx*str+ofs], val instruction. This is declared because it optimizes well for x86.

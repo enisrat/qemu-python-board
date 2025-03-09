@@ -51,12 +51,11 @@ void tcg_gen_add_mem_idx_i64(TCGv_i64 base, TCGv_i64 index, TCGv_i64 val, int el
  * Generate minimal code to set:
  * vCPU...edge hitmap[ CRC32(pc|out_edge_id) ] += 1
  */
-void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id) {
+void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i32 out_edge_id) {
     if(edge_coverage_record_tcg_enabled) {
-
-        TCGv_i64 hashofs = tcg_temp_new_i64();
-        tcg_gen_mov_i64(hashofs, out_edge_id);
-        tcg_gen_fast_hash_i64((TCGv_i32)hashofs, hashofs, pc);
+        TCGv_i32 hashed = tcg_temp_new_i32();
+        tcg_gen_mov_i32(hashed, out_edge_id);
+        tcg_gen_fast_hash_i64(hashed, (TCGv_i64)hashed, pc);
 
         TCGv_ptr baseptr = tcg_temp_new_ptr();
         tcg_gen_ld_ptr(baseptr, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_rec.rec_buf_hitmap) -
@@ -65,8 +64,8 @@ void tcg_gen_rec_edge_i64(TCGv_i64 pc, TCGv_i64 out_edge_id) {
         tcg_gen_ld_i32((TCGv_i32)mask, tcg_env, ((int) offsetof(CPUNegativeOffsetState, coverage_rec.edge_rec.mask) -
                                             (int) sizeof(CPUNegativeOffsetState)));
 
-        tcg_gen_and_i64(hashofs, hashofs, mask);
-        tcg_gen_add_mem_idx_i64((TCGv_i64)baseptr, hashofs, tcg_constant_i64(1), edge_coverage_record_elem_size, 0);
+        tcg_gen_and_i32(hashed, hashed, mask);
+        tcg_gen_add_mem_idx_i64((TCGv_i64)baseptr, (TCGv_i64)hashed, tcg_constant_i64(1), edge_coverage_record_elem_size, 0);
 
         /*
         //liveness pass will take care of that

@@ -21,6 +21,12 @@ extern size_t comp_coverage_record_elems;
 extern bool edge_coverage_record_tcg_enabled;
 extern bool comp_coverage_record_tcg_enabled;
 
+/**Record the edge id not just as a binary edge (0 | 1), but also include a "third" edge for the corner case.
+ * E.g. for "lower or equal", the corner case means "equality".
+ * This can give the fuzzer immediate insight into corner cases, as these differ from the other two cases
+ */
+extern bool edge_coverage_record_cornercase;
+
 /* Initializes the coverage record buffers based on the sizes (static globals as *extern*) above. */
 int init_coverage_recording(void *opaque, QemuOpts *opts, Error **errp);
 

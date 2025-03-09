@@ -336,12 +336,9 @@ static inline void gen_a64_update_pc(DisasContext *s, target_long diff)
 }
 #endif
 
-void arm_test_cc(DisasCompare *cmp, int cc);
+void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc);
 void arm_jump_cc(DisasCompare *cmp, TCGLabel *label);
-/**
- * @rec_edge_cb is called to record the outgoing edge (may be NULL)
- */
-void arm_gen_test_cc(int cc, TCGLabel *label, void (*rec_edge_cb)(DisasCompare *cmp));
+void arm_gen_test_cc(DisasContext *s, int cc, TCGLabel *label);
 MemOp pow2_align(unsigned i);
 void unallocated_encoding(DisasContext *s);
 void gen_exception_insn_el(DisasContext *s, target_long pc_diff, int excp,

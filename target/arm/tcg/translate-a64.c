@@ -27,7 +27,7 @@
 #include "cpregs.h"
 
 static TCGv_i64 cpu_X[32];
-static TCGv_i64 cpu_pc;
+/*static*/ TCGv_i64 cpu_pc;
 
 /* Load/store exclusive handling */
 static TCGv_i64 cpu_exclusive_high;
@@ -102,11 +102,6 @@ void a64_translate_init(void)
 
     cpu_exclusive_high = tcg_global_mem_new_i64(tcg_env,
         offsetof(CPUARMState, exclusive_high), "exclusive_high");
-}
-
-/*Record edge of conditional 0|1 branch*/
-static void a64_cond_branch_rec_edge(DisasCompare *cmp) {
-    tcg_gen_rec_edge_i64(cpu_pc, (TCGv_i64)cmp->value);
 }
 
 /*
@@ -430,11 +425,11 @@ typedef struct DisasCompare64 {
     TCGv_i64 value;
 } DisasCompare64;
 
-static void a64_test_cc(DisasCompare64 *c64, int cc)
+static void a64_test_cc(DisasContext *s, DisasCompare64 *c64, int cc)
 {
     DisasCompare c32;
 
-    arm_test_cc(&c32, cc);
+    arm_test_cc(s, &c32, cc);
 
     /*
      * Sign-extend the 32-bit value so that the GE/LT comparisons work
@@ -1462,6 +1457,7 @@ static bool trans_CBZ(DisasContext *s, arg_cbz *a)
     TCGv_i64 tcg_cmp;
 
     tcg_cmp = read_cpu_reg(s, a->rt, a->sf);
+    tcg_gen_setcondi_i64(TCG_COND_NE, tcg_cmp, tcg_cmp, 0);
     tcg_gen_rec_edge_i64(cpu_pc, tcg_cmp);  /* EDGE COVERAGE */
     reset_btype(s);
 
@@ -1505,7 +1501,7 @@ static bool trans_B_cond(DisasContext *s, arg_B_cond *a)
     if (a->cond < 0x0e) {
         /* genuinely conditional branches */
         DisasLabel match = gen_disas_label(s);
-        arm_gen_test_cc(a->cond, match.label, a64_cond_branch_rec_edge);
+        arm_gen_test_cc(s, a->cond, match.label);
         gen_goto_tb(s, 0, 4);
         set_disas_label(s, match);
         gen_goto_tb(s, 1, a->imm);
@@ -6549,7 +6545,7 @@ static bool trans_FCSEL(DisasContext *s, arg_FCSEL *a)
     read_vec_element(s, t_true, a->rn, 0, a->esz);
     read_vec_element(s, t_false, a->rm, 0, a->esz);
 
-    a64_test_cc(&c, a->cond);
+    a64_test_cc(s, &c, a->cond);
     tcg_gen_movcond_i64(c.cond, t_true, c.value, tcg_constant_i64(0),
                         t_true, t_false);
 
@@ -7162,7 +7158,7 @@ static void disas_cc(DisasContext *s, uint32_t insn)
 
     /* Set T0 = !COND.  */
     tcg_t0 = tcg_temp_new_i32();
-    arm_test_cc(&c, cond);
+    arm_test_cc(s, &c, cond);
     tcg_gen_setcondi_i32(tcg_invert_cond(c.cond), tcg_t0, c.value, 0);
 
     /* Load the arguments for the new comparison.  */
@@ -7257,7 +7253,7 @@ static void disas_cond_select(DisasContext *s, uint32_t insn)
 
     tcg_rd = cpu_reg(s, rd);
 
-    a64_test_cc(&c, cond);
+    a64_test_cc(s, &c, cond);
     zero = tcg_constant_i64(0);
 
     if (rn == 31 && rm == 31 && (else_inc ^ else_inv)) {
@@ -8013,7 +8009,7 @@ static void disas_fp_ccomp(DisasContext *s, uint32_t insn)
     if (cond < 0x0e) { /* not always */
         TCGLabel *label_match = gen_new_label();
         label_continue = gen_new_label();
-        arm_gen_test_cc(cond, label_match, a64_cond_branch_rec_edge);
+        arm_gen_test_cc(s, cond, label_match);
         /* nomatch: */
         gen_set_nzcv(tcg_constant_i64(nzcv << 28));
         tcg_gen_br(label_continue);
