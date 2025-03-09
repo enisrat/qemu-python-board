@@ -1530,7 +1530,11 @@ static void set_btype_for_blr(DisasContext *s)
 
 static bool trans_BR(DisasContext *s, arg_r *a)
 {
-    tcg_gen_rec_edge_i64(cpu_pc, cpu_reg(s, a->rn)); /*EDGE COVERAGE*/
+     /*EDGE COVERAGE*/
+    TCGv_i64 pc_here = tcg_temp_new_i64();
+    tcg_gen_addi_i64(pc_here, cpu_pc, (s->pc_curr - s->pc_save));
+    tcg_gen_rec_edge_i64(pc_here, cpu_reg(s, a->rn));
+
     gen_a64_set_pc(s, cpu_reg(s, a->rn));
     set_btype_for_br(s, a->rn);
     s->base.is_jmp = DISAS_JUMP;
@@ -1547,7 +1551,11 @@ static bool trans_BLR(DisasContext *s, arg_r *a)
         dst = tmp;
     }
     gen_pc_plus_diff(s, lr, curr_insn_len(s));
-    tcg_gen_rec_edge_i64(cpu_pc, dst); /*EDGE COVERAGE*/
+
+    /*EDGE COVERAGE*/
+    /*Save one insn: use LR=PC+4 instead of actual PC*/
+    tcg_gen_rec_edge_i64(lr, dst); 
+    
     gen_a64_set_pc(s, dst);
     set_btype_for_blr(s);
     s->base.is_jmp = DISAS_JUMP;
