@@ -652,11 +652,13 @@ void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc)
     /**encodes the outgoing "edge id" of this control flow instruction.
      * We make it so each condition is a deterministic bitfield, meaning 
      * no bits in the 32-bit temporary are undefined.
-     * Corner cases may yield a "third" edge id. E.g. if "lower or euqal than",
-     * we can see "equal" as a third outgoing edge. This insight could help the 
-     * fuzzer concentrate on corner cases as well.
+     * Corner case recording means that we additionally encode the ZF
+     * in every edge id.
      */
-    TCGv_i32 edge_id; 
+    TCGv_i32 edge_id = tcg_temp_new_i32();
+
+    //conserves semantic  of ZF according to ZF definition
+    tcg_gen_setcondi_i32(TCG_COND_NE, cpu_ZF, cpu_ZF, 0); 
 
     switch (cc) {
     case 0: /* eq: Z */
@@ -664,18 +666,22 @@ void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc)
         cond = TCG_COND_EQ;
         value = cpu_ZF;
 
-        if (edge_coverage_record_tcg_enabled)
-        {
-            edge_id = tcg_temp_new_i32();
-            tcg_gen_setcondi_i32(TCG_COND_NE, edge_id, cpu_ZF, 0);
-        }
+        edge_id = cpu_ZF;
         break;
 
     case 2: /* cs: C */
     case 3: /* cc: !C */
         cond = TCG_COND_NE;
         value = cpu_CF;
-        edge_id = cpu_CF; //CF = 0 or 1 has no undefined bits
+
+        if (edge_coverage_record_cornercase) {
+            tcg_gen_neg_i32(edge_id, cpu_CF);
+            tcg_gen_xor_i32(edge_id, edge_id, cpu_ZF);
+        } else {
+            //tcg_temp_free_i32(edge_id);
+            edge_id = cpu_CF;
+        }
+
         break;
 
     case 4: /* mi: N */
@@ -683,11 +689,13 @@ void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc)
         cond = TCG_COND_LT;
         value = cpu_NF;
 
-        if (edge_coverage_record_tcg_enabled)
-        {
-            //only bit 31 of NF is defined, so we need to shift.
-            //The result of TCG_COND_LT is equivalent 
-            tcg_gen_sari_i32(value, value, 31);
+        //only bit 31 of NF is defined, so we need to shift.
+        //The result of TCG_COND_LT is equivalent 
+        tcg_gen_sari_i32(value, value, 31);
+        if (edge_coverage_record_cornercase) {            
+            tcg_gen_xor_i32(edge_id, cpu_ZF, value);
+        } else {
+
             edge_id = value;
         }
         break;
@@ -697,11 +705,9 @@ void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc)
         cond = TCG_COND_LT;
         value = cpu_VF;
 
-        if (edge_coverage_record_tcg_enabled)
-        {
-            tcg_gen_sari_i32(value, value, 31);
-            edge_id = value;
-        }
+        tcg_gen_sari_i32(value, value, 31);
+        edge_id = value; 
+        // no use to record ZF, as it does not delimit "corner case" here
         break;
 
     case 8: /* hi: C && !Z */
@@ -711,25 +717,16 @@ void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc)
         /* CF is 1 for C, so -CF is an all-bits-set mask for C;
            ZF is non-zero for !Z; so AND the two subexpressions.  */
         tcg_gen_neg_i32(value, cpu_CF);
-        tcg_gen_and_i32(value, value, cpu_ZF);
-
-        if (edge_coverage_record_tcg_enabled)
-        {
-            edge_id = tcg_temp_new_i32();
-            if (edge_coverage_record_cornercase)
-            {
-                // aditionally we are interested in ZF here to record the corner case "equal"
-                tcg_gen_setcondi_i32(TCG_COND_EQ, edge_id, cpu_ZF, 0);
-                //edge_id = 1 | 0
-                tcg_gen_subi_i32(edge_id, edge_id, 1);
-                //edge_id = 0 | -1
-                tcg_gen_xor_i32(edge_id, edge_id, cpu_CF); // edge_id = !ZF...!ZF CF
-            }
-            else
-            {
-                tcg_gen_setcondi_i32(TCG_COND_NE, edge_id, value, 0);
-            }
+        if(edge_coverage_record_cornercase) {
+            tcg_gen_xor_i32(edge_id, value, cpu_ZF);
         }
+        
+        tcg_gen_and_i32(value, value, cpu_ZF);
+        
+        if(!edge_coverage_record_cornercase) {
+            edge_id = value;
+        }
+
         break;
 
     case 10: /* ge: N == V -> N ^ V == 0 */
@@ -739,19 +736,14 @@ void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc)
         value = tcg_temp_new_i32();
         tcg_gen_xor_i32(value, cpu_VF, cpu_NF);
 
-        if (edge_coverage_record_tcg_enabled)
+        //it does not matter if we propagate bit 31, TCG_COND_GE still equivalent
+        tcg_gen_sari_i32(value, value, 31); // value = (NF^VF)...(NF^VF)
+        if (edge_coverage_record_cornercase)
         {
-            //it does not matter if we propagate bit 31, TCG_COND_GE still equivalent
-            tcg_gen_sari_i32(value, value, 31); // value = (NF^VF)...(NF^VF)
-            if (edge_coverage_record_cornercase)
-            {
-                // aditionally we are interested in ZF here to record the corner case "equal"
-                edge_id = tcg_temp_new_i32();
-                tcg_gen_setcondi_i32(TCG_COND_NE, edge_id, cpu_ZF, 0);
-                tcg_gen_xor_i32(edge_id, edge_id, value);// edge_id = (NF^VF) ... (NF^VF)(NF^VF^ZF)
-            } else {
-                edge_id = value;
-            }
+            // aditionally we are interested in ZF here to record the corner case "equal"
+            tcg_gen_xor_i32(edge_id, cpu_ZF, value);// edge_id = (NF^VF) ... (NF^VF)(NF^VF^ZF)
+        } else {
+            edge_id = value;
         }
 
         break;
@@ -763,29 +755,25 @@ void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc)
         /* (N == V) is equal to the sign bit of ~(NF ^ VF).  Propagate
          * the sign bit then AND with ZF to yield the result.  */
         
-        if (edge_coverage_record_tcg_enabled) {
-            edge_id = tcg_temp_new_i32();
-            if (edge_coverage_record_cornercase)
-            {
-                tcg_gen_xor_i32(value, cpu_VF, cpu_NF);
-                tcg_gen_setcondi_i32(TCG_COND_NE, edge_id, cpu_ZF, 0);
-                tcg_gen_sari_i32(value, value, 31);
-                tcg_gen_xor_i32(edge_id, edge_id, value); // edge_id = (NF^VF) ... (NF^VF)(NF^VF^ZF)
-                tcg_gen_andc_i32(value, cpu_ZF, value);
-            }
-            else
-            {
-                tcg_gen_xor_i32(value, cpu_VF, cpu_NF);
-                tcg_gen_sari_i32(value, value, 31);
-                tcg_gen_andc_i32(value, cpu_ZF, value);
-                tcg_gen_setcondi_i32(TCG_COND_NE, edge_id, value, 0);
-            }
-        } else {
+        if (edge_coverage_record_cornercase)
+        {
+            tcg_gen_xor_i32(value, cpu_VF, cpu_NF);
+            tcg_gen_sari_i32(value, value, 31);
+            tcg_gen_xor_i32(edge_id, cpu_ZF, value); // edge_id = (NF^VF) ... (NF^VF)(NF^VF^ZF)
+            tcg_gen_andc_i32(value, cpu_ZF, value);
+        }
+        else
+        {
             tcg_gen_xor_i32(value, cpu_VF, cpu_NF);
             tcg_gen_sari_i32(value, value, 31);
             tcg_gen_andc_i32(value, cpu_ZF, value);
+            edge_id = value;
         }
-
+        /* orig:
+            tcg_gen_xor_i32(value, cpu_VF, cpu_NF);
+            tcg_gen_sari_i32(value, value, 31);
+            tcg_gen_andc_i32(value, cpu_ZF, value);
+        */
         break;
 
     case 14: /* always */
@@ -801,18 +789,18 @@ void arm_test_cc(DisasContext *s, DisasCompare *cmp, int cc)
         abort();
     }
 
-    if (edge_coverage_record_tcg_enabled) {
-        /* now record the edge */
-        if(s->aarch64){
-            TCGv_i64 pc_here = tcg_temp_new_i64();
-            /* update pc to current program address to make coverage deterministic */
-            tcg_gen_addi_i64(pc_here, cpu_pc, (s->pc_curr - s->pc_save));
-            tcg_gen_rec_edge_i64(pc_here, edge_id);
-        } else {
-            TCGv_i32 pc_here = tcg_temp_new_i32();
-            /* @TODO implement */
-        }
-    }  
+
+    /* now record the edge */
+    if(s->aarch64){
+        TCGv_i64 pc_here = tcg_temp_new_i64();
+        /* update pc to current program address to make coverage deterministic */
+        tcg_gen_addi_i64(pc_here, cpu_pc, (s->pc_curr - s->pc_save));
+        tcg_gen_rec_edge_i64(pc_here, edge_id);
+    } else {
+        TCGv_i32 pc_here = tcg_temp_new_i32();
+        /* @TODO implement */
+    }
+
 
     if (cc & 1) {
         cond = tcg_invert_cond(cond);
