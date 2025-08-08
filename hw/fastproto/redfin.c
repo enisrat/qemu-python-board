@@ -1,5 +1,8 @@
 /**
  * Redfin (Pixel 4a5G / 5)
+ * 
+ * Example QEMU args:
+ * ./qemu-system-aarch64 -machine redfin -smp maxcpus=8 -bios pbl_sdm865.bin -drive file=bootlun.bin,if=none,id=dr7,readonly=on -device ufs-lu,drive=dr7,bus=ufs-bus,lun=7  -drive file=sde,if=none,id=dr0,readonly=on  -device ufs-lu,drive=dr0,bus=ufs-bus,lun=0 -drive file=sda,if=none,id=dr1,readonly=on  -device ufs-lu,drive=dr1,bus=ufs-bus,lun=1 -drive file=sdd,if=none,id=dr2,readonly=on  -device ufs-lu,drive=dr2,bus=ufs-bus,lun=2 -chardev pty,id=qup
  */
 
 #include "qemu/osdep.h"
