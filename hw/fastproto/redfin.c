@@ -128,6 +128,7 @@ static DeviceState *create_ic()
 void brom_instrument();
 void xbl_sec_instrument();
 void sbl1_instrument();
+void xbl_uefi_instrument();
 
 static void redfin_init(MachineState * machine)
 {

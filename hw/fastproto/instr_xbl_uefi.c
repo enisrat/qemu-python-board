@@ -15,6 +15,8 @@
 #include "crypto/hash.h"
 #include "qemu/log.h"
 
+static void add_instruments_for_UEFI_image();
+
 static void retN(CPUState *cs, vaddr pc, void *opaque)
 {
     qemu_log_mask(LOG_TRACE, "HIT instrument @%llx cpu %d %llx\n", pc, cs->cpu_index, opaque);
@@ -176,6 +178,26 @@ static guid_name_pair guid_to_name[] = {
 {"e99706f8d67f6546864688e33ef71dfc", "SecurityStubDxe"},
 {"663a5820263c9e4d9a8ce2dfa2914015", "MacDxe"},
 {"3a79b07d0244e14b906ed0fabad2707e", "DDRInfoDxe"},
+{"c13200e91b678342a9a3bd225f3b3bcd", "Roboto-Regular.ttf"},
+{"2d7f49baefb5494bb1cb3c01e19b9b19", "RedWarning1080.bmp"},
+{"e1ea408dbdae764c892962d04d3e0882", "LinuxLoader"},
+{"2d6fa586cef6a045b906a24a95c8106d", "Splash1080.bmp"},
+{"985d72ffd521794e80bc82c71defec81", "FastbootTransportUsbDxe"},
+{"45c4ba695aa13548957f94214b8b09db", "Splash1440.bmp"},
+{"96e05422c2428b4f8f30641a95663be8", "YellowWarning1440.bmp"},
+{"3dd4b2d92fe0864aa445bd1474b33671", "RedWarning1440.bmp"},
+{"2069f96122c02b4baa801c364a4f64b1", "B1c1FastbootApp"},
+{"9ab3acae93656147a4b38b8aa5b0d19c", "OrangeWarning1080.bmp"},
+{"f25f89603ed0994d8d1a46af496fdd31", "Power1080.bmp"},
+{"a6876b15fa17b94f9589141f4bf2428b", "SplashDark1080.bmp"},
+{"b1dab920d2905e49af04769954265da9", "VolumeUp1080.bmp"},
+{"503bcd037465294fb6a1510a7d765127", "Power1440.bmp"},
+{"353356e7b5062e44ba2de0db99895a8a", "OrangeWarning1440.bmp"},
+{"3c7f0801831be34b94ab58081b5346da", "VolumeDown1080.bmp"},
+{"3a7d1149bda36a458a45557c5bd0116c", "YellowWarning1080.bmp"},
+{"52fabaeea5b91f46a2bbbc3bd2969cd4", "SplashDark1440.bmp"},
+{"1b66084221a7834f9fd8b8b85b4802ff", "VolumeUp1440.bmp"},
+{"fecf087a818aa74cad12480bdb70c2c9", "VolumeDown1440.bmp"},
 };
 
 // Function to convert bytes to hex string
@@ -198,6 +220,9 @@ char* find_value_by_guid(uint8_t guid[16]) {
     }
     return NULL; // Not found
 }
+
+static char *last_image_loaded = NULL;
+static uint64_t last_image_base = 0;
 
 static void CoreImageLoad(CPUState *cs, vaddr pc, void *opaque)
 {
@@ -224,22 +249,112 @@ static void CoreImageLoad(CPUState *cs, vaddr pc, void *opaque)
     }
 
 	char *found = find_value_by_guid(guid);
+    last_image_loaded = found;
 	if(found) {
 		qemu_log_mask(LOG_TRACE, "CoreImageLoad: %s\n", found);
-	} else {
-		qemu_log_mask(LOG_TRACE, "CoreImageLoad: %02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+    }
+    else
+    {
+        qemu_log_mask(LOG_TRACE, "CoreImageLoad: %02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
 				guid[0], guid[1], guid[2], guid[3],
 				guid[4], guid[5], guid[6], guid[7],
 				guid[8], guid[9], guid[10], guid[11],
 				guid[12], guid[13], guid[14], guid[15]);
-	}
+    }
 }
+
 
 static void CoreImageLoad_DestAddrDetermined(CPUState *cs, vaddr pc, void *opaque)
 {
     ARMCPU *cpu = ARM_CPU(cs);
     uint64_t dest_addr = cpu->env.xregs[0];
     qemu_log_mask(LOG_TRACE, "DestAddr: %llx\n", dest_addr);
+
+    last_image_base = dest_addr;
+    if(last_image_loaded) add_instruments_for_UEFI_image();
+}
+
+static void QseeLoadServiceImage(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    uint32_t uuid;
+    cpu_memory_rw_debug(cs, cpu->env.xregs[1], &uuid, 4, false);
+    qemu_log_mask(LOG_TRACE, "QseeLoadServiceImage: %08X\n", uuid);
+}
+
+static void set_CPU_BYPASS_RANGE_CHECKING(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    uint32_t one = 1;
+    cpu_memory_rw_debug(cs, 0xA50354C0, &one, 4, true);
+}
+
+//break simple endless loops
+static void loop_breaker(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    cpu->env.pc += 4;
+}
+
+static void PlatformInfo_Init_Struct(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    uint32_t platform = 0xf; //EFI_PLATFORMINFO_TYPE_RUMI
+    // X19+0x10 -> PlatformInfo Struct
+    cpu_memory_rw_debug(cs, cpu->env.xregs[19]+0x10, &platform, 4, true); //set "platform" field
+}
+
+// do not use RUMI Platform Type for UFS, because it would trigger a lot of additional
+// HW code inside UFSDxe... (probably for testing UFS HW)
+static void UFS_set_g_platform(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    uint32_t platform = 8;
+    cpu->env.xregs[8] = platform; 
+}
+
+static void add_instruments_for_UEFI_image(){
+    if (strcmp(last_image_loaded, "RpmhDxe") == 0) 
+    {
+        add_instrument(last_image_base+0x3734, -1, set_rpmh_is_standalone, 0); //rpmh_client_init
+    } 
+    else if (strcmp(last_image_loaded, "PdcDxe") == 0)
+    {
+        add_instrument(last_image_base+0x23A8, -1, retN, 0); // PDCDxe pdc_seq_handle_init
+        add_instrument(last_image_base+0x2418, -1, retN, 0); // PDCDxe pdc_seq_enable
+    }
+    else if (strcmp(last_image_loaded, "UFSDxe") == 0)
+    {
+        add_instrument(last_image_base+0x252C, -1, retN, 0); // UFSDxe UFSSmmuConfig
+        add_instrument(last_image_base + 0x1373C, -1, UFS_set_g_platform, 0); //during ufs_bsp_get_platform_config
+    }
+    else if (strcmp(last_image_loaded, "TzDxe") == 0)
+    {
+        add_instrument(last_image_base+0x26E4, -1, QseeLoadServiceImage, 0);
+    }
+    else if (strcmp(last_image_loaded, "ClockDxe") == 0)
+    {
+        add_instrument(last_image_base+0xB3B4, -1, set_CPU_BYPASS_RANGE_CHECKING, 0); //Clock_SetCpuPerfLevel
+        add_instrument(last_image_base + 0xBF5C, -1, loop_breaker, 0);
+        add_instrument(last_image_base + 0x11B78, -1, loop_breaker, 0);
+        add_instrument(last_image_base + 0x5D8C, -1, retN, 0); //clock_SourceOn
+    }
+    else  if (strcmp(last_image_loaded, "PmicDxe") == 0)
+    {
+        //add_instrument(last_image_base+0x10ec8, -1, retN, 1); //PmicInitializeDetect
+    }
+    else  if (strcmp(last_image_loaded, "PlatformInfoDxeDriver") == 0)
+    {
+        // Set Pltform to RUMI. Makes some emulation easier, as the UEFI modules check this occasionally 
+        // and are then aware that PMIC is not funtional
+        add_instrument(last_image_base+0x206C, -1, PlatformInfo_Init_Struct, 0); //PlatformInfo_Init_Struct (after pDrvCtxt->pGlbCtxt was copied)
+    }else  if (strcmp(last_image_loaded, "CPRDxe") == 0)
+    {
+        add_instrument(last_image_base+0x145C, -1, retN, 0); //CPRDxeEntryPoint
+    }
+    else /* default: */
+    {
+    }
 }
 
 void xbl_uefi_instrument()
@@ -249,14 +364,4 @@ void xbl_uefi_instrument()
 
     add_instrument(0xA51ADE90, -1, CoreImageLoad, 0);
     add_instrument(0xA51ADA8C, -1, CoreImageLoad_DestAddrDetermined, 0);
-
-    add_instrument(0xA5050734, -1, set_rpmh_is_standalone, 0);
-
-    add_instrument(0xA50463A8, -1, retN, 0); // pdc_seq_handle_init
-    add_instrument(0xA5046418, -1, retN, 0); // pdc_seq_enable
-
-    add_instrument(0xA50127C4, -1, retN, 0); // Clock_InitTarget
-    add_instrument(0xA500AF20, -1, retN, 0); // Clock_InitBases
-
-    add_instrument(0xA46A552C, -1, retN, 0); // UFSSmmuConfig
 }

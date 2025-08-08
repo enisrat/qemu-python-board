@@ -218,6 +218,31 @@ static void print_smc(CPUState *cs, vaddr pc, void *opaque)
     qemu_log_mask(LOG_TRACE, "%s: %llx\n", __func__,  cpu->env.xregs[0]);
 }
 
+// tzbsp_prng_getdata is called here. Code needs random, else it fails.
+// Re-inject PseudoRandom.
+static void tz_getPagesForApp_injectPseudoRand(CPUState *cs, vaddr pc, void *opaque)
+{
+    static int i = 0;
+    ARMCPU *cpu = ARM_CPU(cs);
+
+    uint32_t prand = (++i)*862275511;
+    cpu_memory_rw_debug(cs, cpu->env.xregs[0], &prand, sizeof(prand), true);
+    cpu->env.xregs[0] = 4;
+    cpu->env.pc = cpu->env.pc + 4;
+}
+
+//KModule_log
+static void KModule_log(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    int len = cpu->env.xregs[2];
+    char buf[512];
+    buf[len + 1] = 0;
+    cpu_memory_rw_debug(cs, cpu->env.xregs[1], buf, len + 1, false);
+    qemu_log_mask(LOG_TRACE, "%s: %s\n", __func__,  buf);
+    cpu->env.pc = cpu->env.xregs[30]; 
+}
+
 // externally defined
 void hook_qsee_start(CPUState *cs, vaddr pc, void *opaque);
 
@@ -276,5 +301,7 @@ void tz_instrument()
 
     add_instrument(0x887A99790, -1, print_smc, 0); // print_smc
 
-    
+    add_instrument(0x887A67738, -1, tz_getPagesForApp_injectPseudoRand, 0);
+
+    add_instrument(0x887A6EFD8, -1, KModule_log, 0);
 }
