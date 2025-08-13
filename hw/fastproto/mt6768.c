@@ -1,8 +1,10 @@
 /**
- * Redfin (Pixel 4a5G / 5)
+ * mt6768
  * 
  * Example QEMU args:
- * ./qemu-system-aarch64 -machine redfin -smp maxcpus=8 -bios pbl_sdm865.bin -drive file=bootlun.bin,if=none,id=dr7,readonly=on -device ufs-lu,drive=dr7,bus=ufs-bus,lun=7  -drive file=sde,if=none,id=dr0,readonly=on  -device ufs-lu,drive=dr0,bus=ufs-bus,lun=0 -drive file=sda,if=none,id=dr1,readonly=on  -device ufs-lu,drive=dr1,bus=ufs-bus,lun=1 -drive file=sdd,if=none,id=dr2,readonly=on  -device ufs-lu,drive=dr2,bus=ufs-bus,lun=2 -chardev pty,id=qup
+ * ./qemu-system-aarch64 -machine mt6768 ... ??
+ * 
+ * -object memory-backend-file,id=id,size=size,mem-path=dir,share=on|off,discard-data=on|off,merge=on|off,dump=on|off,prealloc=on|off,host-nodes=host-nodes,policy=default|preferred|bind|interleave,align=align,offset=offset,readonly=on|off,rom=on|off|auto
  */
 
 #include "qemu/osdep.h"
@@ -29,6 +31,8 @@
 #include "qemu/log.h"
 #include "sysemu/sysemu.h"
 #include "chardev/char.h"
+#include "sysemu/hostmem.h"
+#include "hw/misc/unimp.h"
 
 #define CPU_NAME "cortex-a53-arm-cpu"
 
@@ -124,7 +128,7 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
 
 static DeviceState *create_ic()
 {
-    return create_gicv3(384, 0x17a00000, 0x17a60000);
+    return create_gicv3(256, 0x0c000000, 0x0c040000);
 }
 
 // pull in modularized code
@@ -133,7 +137,7 @@ void xbl_sec_instrument();
 void sbl1_instrument();
 void xbl_uefi_instrument();
 
-static void redfin_init(MachineState * machine)
+static void mt6768_init(MachineState * machine)
 {
     Error *err = NULL;
     Object *o;
@@ -152,121 +156,65 @@ static void redfin_init(MachineState * machine)
     // Interrupt Controller (IC) created first
     DeviceState *icdev = create_ic();
 
-    sysbus_create_varargs("ufs", 0x1d84000, NULL);
+    //sysbus_create_varargs("ufs", 0x1d84000, NULL);
 
-    sysbus_create_varargs("qcom_clkdom", 0x17800000 + 0x00541000, NULL);
-    sysbus_create_varargs("qcom_mpm2_sleepctr", 0xC221000, NULL);
-    sysbus_create_varargs("qcom_pimem_ramblur", 0x610000, NULL);
-    sysbus_create_varargs("qcom_gpll4_mode", 0x177000, NULL);
-    sysbus_create_varargs("qcom_prng", 0x791000, NULL);
-    sysbus_create_varargs("qcom_qfprom", 0x780000, NULL);
-    sysbus_create_varargs("qcom_rng", 0x793000, NULL);
-    sysbus_create_varargs("qcom_smmu", 0x15000000, NULL);
-    sysbus_create_varargs("qcom_tcsr_boot_misc_detect", 0x1FD3000, NULL);
-    sysbus_create_varargs("qcom_tcsr_wonce", 0x1FD4000, NULL);
-    sysbus_create_varargs("qcom_tcsr_devconfig", 0x1FC8000, NULL);
-    sysbus_create_varargs("qcom_tcsr_mutex", 0x1F40000, NULL);
-    sysbus_create_varargs("qcom_timer1", 0x17C21000, NULL);
-    sysbus_create_varargs("qcom_ufsphy", 0x1D87000, NULL);
-    sysbus_create_varargs("qcom_0x1dc0000", 0x1DC0000, NULL);
-    sysbus_create_varargs("qcom_0x90c0000", 0x90c0000, NULL);
-    sysbus_create_varargs("qcom_0x189000", 0x189000, NULL);
-    sysbus_create_varargs("qcom_0x190000", 0x190000, NULL);
-    sysbus_create_varargs("qcom_0xc230000", 0xc230000, NULL);
-    sysbus_create_varargs("qcom_qtimer1", 0x17C20000, NULL);
-    sysbus_create_varargs("qcom_0xc600000", 0xc600000, NULL);
+    //sysbus_create_varargs("qcom_mpm2_sleepctr", 0xC221000, NULL);
 
-    o = qdev_new("qcom_qup");
-    Chardev *chr = qemu_chr_find("qup");
+
+    o = qdev_new("mtk_uart");
+    Chardev *chr = qemu_chr_find("uart0");
     if(!chr){
-        error_report("chardev with id \"qup\" not found\n");
+        error_report("chardev with id \"uart0\" not found\n");
         exit(1);
     }
     qdev_prop_set_chr(o, "prop_chr", chr);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
-    sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x888000);
+    sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x01002000);
 
-    o = qdev_new("qcom_spmi");
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
-    sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x0c40a000);
-    sysbus_mmio_map(SYS_BUS_DEVICE(o), 1, 0x0c440000);
-    sysbus_mmio_map(SYS_BUS_DEVICE(o), 2, 0x0e700000);
+    // o = qdev_new("qcom_spmi");
+    // sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
+    // sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x0c40a000);
 
-    // add SRAM @0x14680000 of size 0x40000
-    MemoryRegion *sram = g_new(MemoryRegion, 1);
-    memory_region_init_ram(sram, 0, "sram", 0x40000, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0x14680000, sram);
 
-    // add SRAM_SEC @0x14800000 of size 0x100000
-    MemoryRegion *sram_sec = g_new(MemoryRegion, 1);
-    memory_region_init_ram(sram_sec, 0, "sram_sec", 0x100000, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0x14800000, sram_sec);
+    o = object_resolve_path_component(object_get_objects_root(), "dram");
+    memory_region_add_subregion(get_system_memory(), 0x40000000, &MEMORY_BACKEND(o)->mr);
 
-    // add PIMEM @0x1c000000 of size 0x04000000
-    MemoryRegion *pimem = g_new(MemoryRegion, 1);
-    memory_region_init_ram(pimem, 0, "pimem", 0x04000000, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0x1c000000, pimem);
+    o = object_resolve_path_component(object_get_objects_root(), "sram");
+    memory_region_add_subregion(get_system_memory(), 0x200000, &MEMORY_BACKEND(o)->mr);
 
-    // add AOPMEM @0x0b000000 of size 0x100000
-    MemoryRegion *aopmem = g_new(MemoryRegion, 1);
-    memory_region_init_ram(aopmem, 0, "aopmem", 0x100000, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0x0b000000, aopmem);
-
-    // add DRAM @0x80000000
-    memory_region_add_subregion(get_system_memory(), 0x80000000, machine->ram);
-
-    MemoryRegion *rom = g_new(MemoryRegion, 1);
-    memory_region_init_rom(rom, 0, "rom", 0x100000, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0x300000, rom);
-
-    // load BOOTROM image @300000
-    if (machine->firmware != NULL) {
-        char *fn = qemu_find_file(QEMU_FILE_TYPE_BIOS, machine->firmware);
-        if (fn != NULL) {
-            if (load_image_targphys(fn, 0x300000, 0x100000) < 0) {
-                error_report("Unable to load %s", machine->firmware);
-                exit(1);
-            }
-            g_free(fn);
-        } else {
-            error_report("Unable to find %s", machine->firmware);
-            exit(1);
-        }
-    }
+    create_unimplemented_device("a", 0x300000, 0x01002000-0x300000);
+    create_unimplemented_device("b", 0x01003000, 0x40000000-0x01003000);
+    create_unimplemented_device("c", 0x100000000, 0x100000000);
 
     ARMCPU * cs = qemu_get_cpu(0);
 
     cpu_reset(cs);
     arm_emulate_firmware_reset(cs, 3);
 
-    cpu_set_pc(cs, 0x300000);
+    cpu_set_pc(cs, 0x4CE01000);
     arm_rebuild_hflags(&cs->env);
     init_instrument_htable();
 
-    brom_instrument();
-    xbl_sec_instrument();
-    sbl1_instrument();
-    tz_instrument();
-    xbl_uefi_instrument();
+    //brom_instrument();
 }
 
-static void redfin_machine_init(MachineClass *mc)
+static void mt6768_machine_init(MachineClass *mc)
 {
     static const char *const valid_cpu_types[] = {
         CPU_NAME,
         NULL};
 
-    mc->desc = "redfin";
+    mc->desc = "mt6768";
     mc->default_cpu_type = CPU_NAME;
     mc->valid_cpu_types = valid_cpu_types;
     mc->max_cpus = 8;
-    mc->default_ram_size = 1 * GiB;
+    mc->default_ram_size = 3 * GiB;
     mc->minimum_page_bits = 12;
-    mc->init = redfin_init;
+    mc->init = mt6768_init;
     mc->block_default_type = IF_IDE;
     mc->units_per_default_bus = 1;
     mc->ignore_memory_transaction_failures = true;
-    mc->default_ram_id = "redfin.ram";
+    mc->default_ram_id = "mt6768.ram";
 }
 
-DEFINE_MACHINE("redfin", redfin_machine_init)
+DEFINE_MACHINE("mt6768", mt6768_machine_init)
