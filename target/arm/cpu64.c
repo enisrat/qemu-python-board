@@ -790,7 +790,7 @@ static void aarch64_cpu_finalizefn(Object *obj)
 
 static const gchar *aarch64_gdb_arch_name(CPUState *cs)
 {
-    CPUClass *cc = CPU_GET_CLASS(cpu);
+    CPUClass *cc = CPU_GET_CLASS(cs);
     ARMCPU *cpu = ARM_CPU(cs);
     if( cpu->env.aarch64 ) {
         cc->gdb_read_register = aarch64_cpu_gdb_read_register;

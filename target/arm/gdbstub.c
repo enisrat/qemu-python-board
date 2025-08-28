@@ -475,13 +475,13 @@ static GDBFeature *arm_gen_dynamic_m_secextreg_feature(CPUState *cs,
 #endif
 #endif /* CONFIG_TCG */
 
-void arm_cpu_register_gdb_commands(ARMCPU *cpu)
+void arm_cpu_register_gdb_commands(ARMCPU *cpu, bool a64)
 {
     g_autoptr(GPtrArray) query_table = g_ptr_array_new();
     g_autoptr(GPtrArray) set_table = g_ptr_array_new();
     g_autoptr(GString) qsupported_features = g_string_new(NULL);
 
-    if (arm_feature(&cpu->env, ARM_FEATURE_AARCH64)) {
+    if (a64) {
     #ifdef TARGET_AARCH64
         aarch64_cpu_register_gdb_commands(cpu, qsupported_features, query_table,
                                           set_table);
@@ -504,12 +504,12 @@ void arm_cpu_register_gdb_commands(ARMCPU *cpu)
     }
 }
 
-void arm_cpu_register_gdb_regs_for_features(ARMCPU *cpu)
+void arm_cpu_register_gdb_regs_for_features(ARMCPU *cpu, bool a64)
 {
     CPUState *cs = CPU(cpu);
     CPUARMState *env = &cpu->env;
 
-    if (arm_feature(env, ARM_FEATURE_AARCH64)) {
+    if (a64) {
         /*
          * The lower part of each SVE register aliases to the FPU
          * registers so we don't need to include both.

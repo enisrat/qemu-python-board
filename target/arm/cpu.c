@@ -2517,8 +2517,8 @@ static void arm_cpu_realizefn(DeviceState *dev, Error **errp)
 #endif
 
     register_cp_regs_for_features(cpu);
-    arm_cpu_register_gdb_regs_for_features(cpu);
-    arm_cpu_register_gdb_commands(cpu);
+    arm_cpu_register_gdb_regs_for_features(cpu, arm_feature(env, ARM_FEATURE_AARCH64));
+    arm_cpu_register_gdb_commands(cpu, arm_feature(env, ARM_FEATURE_AARCH64));
 
     init_cpreg_list(cpu);
 

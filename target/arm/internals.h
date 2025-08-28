@@ -355,10 +355,10 @@ void aarch64_cpu_register(const ARMCPUInfo *info);
 void register_cp_regs_for_features(ARMCPU *cpu);
 void init_cpreg_list(ARMCPU *cpu);
 
-void arm_cpu_register_gdb_regs_for_features(ARMCPU *cpu);
+void arm_cpu_register_gdb_regs_for_features(ARMCPU *cpu, bool a64);
 void arm_translate_init(void);
 
-void arm_cpu_register_gdb_commands(ARMCPU *cpu);
+void arm_cpu_register_gdb_commands(ARMCPU *cpu, bool a64);
 void aarch64_cpu_register_gdb_commands(ARMCPU *cpu, GString *,
                                        GPtrArray *, GPtrArray *);
 
