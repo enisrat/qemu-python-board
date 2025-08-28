@@ -2493,3 +2493,31 @@ void gdb_create_default_process(GDBState *s)
     process->target_xml = NULL;
 }
 
+
+void gdb_reinit_after_attach()
+{
+    //#ifdef TARGET_AARCH64
+    #if 1
+
+    CPUState *cpu;
+    gchar *arch_name;
+    bool a64 = false;
+
+    extra_query_flags = 0;
+    extended_query_table = 0;
+    extended_set_table = 0;
+
+    CPU_FOREACH(cpu) {
+        CPUClass *cc = CPU_GET_CLASS(cpu);
+        if (cc->gdb_arch_name) {
+            arch_name = cc->gdb_arch_name(cpu);
+            if(!strcmp(arch_name, "aarch64"))
+                a64 = true;
+            warn_report("GDB switching to: %s\n", arch_name);
+        }
+        gdb_init_cpu(cpu);
+        arm_cpu_register_gdb_regs_for_features(cpu, a64);
+        arm_cpu_register_gdb_commands(cpu, a64);
+    }
+    #endif
+}
