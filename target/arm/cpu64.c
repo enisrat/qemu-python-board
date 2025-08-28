@@ -790,7 +790,19 @@ static void aarch64_cpu_finalizefn(Object *obj)
 
 static const gchar *aarch64_gdb_arch_name(CPUState *cs)
 {
-    return "aarch64";
+    CPUClass *cc = CPU_GET_CLASS(cpu);
+    ARMCPU *cpu = ARM_CPU(cs);
+    if( cpu->env.aarch64 ) {
+        cc->gdb_read_register = aarch64_cpu_gdb_read_register;
+        cc->gdb_write_register = aarch64_cpu_gdb_write_register;
+        cc->gdb_core_xml_file = "aarch64-core.xml";
+        return "aarch64";
+    } else {
+        cc->gdb_read_register = arm_cpu_gdb_read_register;
+        cc->gdb_write_register = arm_cpu_gdb_write_register;
+        cc->gdb_core_xml_file = "arm-core.xml";
+        return "arm";
+    }
 }
 
 static void aarch64_cpu_class_init(ObjectClass *oc, void *data)
