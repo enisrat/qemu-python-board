@@ -29,6 +29,58 @@
 #include "cpu-features.h"
 #include "cpregs.h"
 
+
+static const ARMCPRegInfo dsu_cp_reginfo[] = {
+  { .name = "CLUSTERCFR_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 3, .opc2 = 0,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERIDR_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 3, .opc2 = 1,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERREVIDR_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 3, .opc2 = 2,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERACTLR_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 3, .opc2 = 3,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERECTLR_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 3, .opc2 = 4,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERPWRCTLR_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 3, .opc2 = 5,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERPWRDN_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 3, .opc2 = 6,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERPWRSTAT_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 3, .opc2 = 7,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = (0xf<<4) },
+  { .name = "CLUSTERTHREADSID_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 4, .opc2 = 0,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERACPSID_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 4, .opc2 = 1,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERSTASHSID_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 4, .opc2 = 2,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERPARTCR_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 4, .opc2 = 3,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERBUSQOS_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 4, .opc2 = 4,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERL3HIT_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 4, .opc2 = 5,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERL3MISS_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 4, .opc2 = 6,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+  { .name = "CLUSTERTHREADSIDOVR_EL1", .state = ARM_CP_STATE_AA64,
+    .opc0 = 3, .opc1 = 0, .crn = 15, .crm = 4, .opc2 = 7,
+    .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
+};
+
 static uint64_t make_ccsidr64(unsigned assoc, unsigned linesize,
                               unsigned cachesize)
 {
@@ -268,7 +320,7 @@ static void aarch64_a55_initfn(Object *obj)
     cpu->isar.id_pfr0  = 0x10010131;
     cpu->isar.id_pfr1  = 0x00011011;
     cpu->isar.id_pfr2  = 0x00000011;
-    cpu->midr = 0x412FD050;          /* r2p0 */
+    cpu->midr = 0x410FD0F0;          /* r2p0 */
     cpu->revidr = 0;
 
     /* From B2.23 CCSIDR_EL1 */
@@ -291,6 +343,8 @@ static void aarch64_a55_initfn(Object *obj)
 
     /* From D5.4 AArch64 PMU register summary */
     cpu->isar.reset_pmcr_el0 = 0x410b3000;
+
+    define_arm_cp_regs(cpu, dsu_cp_reginfo);
 }
 
 static void aarch64_a72_initfn(Object *obj)
@@ -558,9 +612,11 @@ static const ARMCPRegInfo neoverse_n1_cp_reginfo[] = {
       .accessfn = access_actlr_w },
 };
 
+
 static void define_neoverse_n1_cp_reginfo(ARMCPU *cpu)
 {
     define_arm_cp_regs(cpu, neoverse_n1_cp_reginfo);
+    define_arm_cp_regs(cpu, dsu_cp_reginfo);
 }
 
 static const ARMCPRegInfo neoverse_v1_cp_reginfo[] = {
@@ -633,7 +689,7 @@ static void aarch64_neoverse_n1_initfn(Object *obj)
     cpu->isar.id_pfr0  = 0x10010131;
     cpu->isar.id_pfr1  = 0x00010000; /* GIC filled in later */
     cpu->isar.id_pfr2  = 0x00000011;
-    cpu->midr = 0x414fd0c1;          /* r4p1 */
+    cpu->midr = 0x410FD0F0;          /* r4p1 */
     cpu->revidr = 0;
 
     /* From B2.23 CCSIDR_EL1 */

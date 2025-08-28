@@ -63,15 +63,15 @@ static uint64_t mtk_uart_mmio1_read (void *opaque, hwaddr addr, unsigned size) {
         ret = 0;
         break;
     case 0x14:
-        ret = 1 << 5;
+        ret = 1 << 5 | 1 << 6;
         break;
     }
-    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
+    //qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, ret);
     return ret;
 }
 static void mtk_uart_mmio1_write (void *opaque, hwaddr addr, uint64_t value, unsigned size) {
     mtk_uartState *s = (mtk_uartState *) opaque;
-    qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
+    //qemu_log_mask(LOG_TRACE, "%s: off %"HWADDR_PRIx" sz %u val %"PRIx64"\n", __func__, addr, size, value);
 
     switch (addr) {
     case 0x0:
@@ -86,7 +86,7 @@ static const MemoryRegionOps mtk_uart_ops = {
     .write = mtk_uart_mmio1_write,
     .endianness = DEVICE_NATIVE_ENDIAN,
     .valid = {
-        .min_access_size = 4,
+        .min_access_size = 1,
         .max_access_size = 4,
     },
 };

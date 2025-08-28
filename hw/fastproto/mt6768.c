@@ -34,7 +34,7 @@
 #include "sysemu/hostmem.h"
 #include "hw/misc/unimp.h"
 
-#define CPU_NAME "cortex-a53-arm-cpu"
+#define CPU_NAME "cortex-a55-arm-cpu"
 
 
 static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
@@ -56,7 +56,7 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
      * Note that the num-irq property counts both internal and external
      * interrupts; there are always 32 of the former (mandated by GIC spec).
      */
-    qdev_prop_set_uint32(gic, "num-irq", num_irqs + smp_cpus*32);
+    qdev_prop_set_uint32(gic, "num-irq", num_irqs + 32);
     qdev_prop_set_bit(gic, "has-security-extensions", true);
 
     // may need adjusting
@@ -92,10 +92,10 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
     gArmTokenSpaceGuid.PcdArmArchTimerVirtIntrNum|19"""
          */
         const int timer_irq[] = {
-            [GTIMER_PHYS] = 18,
-            [GTIMER_VIRT] = 19,
-            [GTIMER_HYP]  = 0,
-            [GTIMER_SEC]  = 17,
+            [GTIMER_PHYS] = ARCH_TIMER_NS_EL1_IRQ,
+            [GTIMER_VIRT] = ARCH_TIMER_VIRT_IRQ,
+            [GTIMER_HYP]  = ARCH_TIMER_NS_EL2_IRQ,
+            [GTIMER_SEC]  = ARCH_TIMER_S_EL1_IRQ,
             [GTIMER_HYPVIRT] = ARCH_TIMER_NS_EL2_VIRT_IRQ,
         };
 
@@ -128,14 +128,12 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
 
 static DeviceState *create_ic()
 {
-    return create_gicv3(256, 0x0c000000, 0x0c040000);
+    return create_gicv3(320, 0x0c000000, 0x0c040000);
 }
 
 // pull in modularized code
-void brom_instrument();
-void xbl_sec_instrument();
-void sbl1_instrument();
-void xbl_uefi_instrument();
+void atf_teei_instrument();
+void teei_instrument();
 
 static void mt6768_init(MachineState * machine)
 {
@@ -149,6 +147,7 @@ static void mt6768_init(MachineState * machine)
         Object *cpuobj = object_new(machine->cpu_type);
         object_property_add_child(machine, "cpu[*]", cpuobj);
         qdev_prop_set_bit(cpuobj, "start-powered-off", n > 0);
+        //qdev_prop_set_uint64(cpuobj, "mp_affinity", )
         qdev_realize(cpuobj, NULL, &error_fatal);
         object_unref(cpuobj);
     }
@@ -156,10 +155,7 @@ static void mt6768_init(MachineState * machine)
     // Interrupt Controller (IC) created first
     DeviceState *icdev = create_ic();
 
-    //sysbus_create_varargs("ufs", 0x1d84000, NULL);
-
-    //sysbus_create_varargs("qcom_mpm2_sleepctr", 0xC221000, NULL);
-
+    sysbus_create_varargs("mtk_mcucfg", 0xC530000, NULL);
 
     o = qdev_new("mtk_uart");
     Chardev *chr = qemu_chr_find("uart0");
@@ -169,22 +165,55 @@ static void mt6768_init(MachineState * machine)
     }
     qdev_prop_set_chr(o, "prop_chr", chr);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
-    sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x01002000);
+    sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x11002000);
 
     // o = qdev_new("qcom_spmi");
     // sysbus_realize_and_unref(SYS_BUS_DEVICE(o), &error_fatal);
     // sysbus_mmio_map(SYS_BUS_DEVICE(o), 0, 0x0c40a000);
 
+    // o = object_resolve_path_component(object_get_objects_root(), "dram");
+    // memory_region_add_subregion(get_system_memory(), 0x40000000, &MEMORY_BACKEND(o)->mr);
+    MemoryRegion *dram = g_new(MemoryRegion, 1);
+    memory_region_init_ram(dram, 0, "dram", 0xC0000000, &error_fatal);
+    memory_region_add_subregion(get_system_memory(), 0x40000000, dram);
 
-    o = object_resolve_path_component(object_get_objects_root(), "dram");
-    memory_region_add_subregion(get_system_memory(), 0x40000000, &MEMORY_BACKEND(o)->mr);
 
-    o = object_resolve_path_component(object_get_objects_root(), "sram");
+    MemoryRegion *sram1 = g_new(MemoryRegion, 1);
+    memory_region_init_ram(sram1, 0, "sram1", 0x100000, &error_fatal);
+    memory_region_add_subregion(get_system_memory(), 0x100000, sram1);
+
+    o = object_resolve_path_component(object_get_objects_root(), "sram2");
     memory_region_add_subregion(get_system_memory(), 0x200000, &MEMORY_BACKEND(o)->mr);
 
     create_unimplemented_device("a", 0x300000, 0x01002000-0x300000);
     create_unimplemented_device("b", 0x01003000, 0x40000000-0x01003000);
     create_unimplemented_device("c", 0x100000000, 0x100000000);
+
+
+    if( load_image_targphys("atf", 0x4CE01000, 0x100000) < 0 ){
+        error_report("could not load atf");
+        exit(1);
+    }
+    if( load_image_targphys("atf_arg_t", 0x4CE00000, 0x100000) < 0 ){
+        error_report("could not load atf_arg_t");
+        exit(1);
+    }
+    if( load_image_targphys("mtk_bl_param_t", 0x4C080000, 0x100000) < 0 ){
+        error_report("could not load mtk_bl_param_t");
+        exit(1);
+    }
+    if( load_image_targphys("atags", 0x4C11DA80, 0x100000) < 0 ){
+        error_report("could not load atags");
+        exit(1);
+    }
+    if( load_image_targphys("tee", 0x70000000, 0x400000) < 0 ){
+        error_report("could not load tee");
+        exit(1);
+    }
+    if( load_image_targphys("lk", 0x4c400000, 0x800000) < 0 ){
+        error_report("could not load lk");
+        exit(1);
+    }
 
     ARMCPU * cs = qemu_get_cpu(0);
 
@@ -192,10 +221,13 @@ static void mt6768_init(MachineState * machine)
     arm_emulate_firmware_reset(cs, 3);
 
     cpu_set_pc(cs, 0x4CE01000);
+    cs->env.xregs[0] = 0x4C080000;
+    cs->env.xregs[1] = 0x0;
     arm_rebuild_hflags(&cs->env);
     init_instrument_htable();
 
-    //brom_instrument();
+    atf_teei_instrument();
+    teei_instrument();
 }
 
 static void mt6768_machine_init(MachineClass *mc)
