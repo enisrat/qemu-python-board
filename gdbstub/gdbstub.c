@@ -2496,12 +2496,12 @@ void gdb_create_default_process(GDBState *s)
 
 void gdb_reinit_after_attach()
 {
-    //#ifdef TARGET_AARCH64
-    #if 1
+    #ifdef TARGET_AARCH64
 
     CPUState *cpu;
     gchar *arch_name;
     bool a64 = false;
+    bool is_first_cpu = true;
 
     extra_query_flags = 0;
     extended_query_table = 0;
@@ -2511,13 +2511,23 @@ void gdb_reinit_after_attach()
         CPUClass *cc = CPU_GET_CLASS(cpu);
         if (cc->gdb_arch_name) {
             arch_name = cc->gdb_arch_name(cpu);
-            if(!strcmp(arch_name, "aarch64"))
+            if(!strcmp(arch_name, "aarch64") && is_first_cpu){
                 a64 = true;
-            warn_report("GDB switching to: %s\n", arch_name);
+            }
+            if(is_first_cpu)
+                warn_report("GDB switching to: %s\n", arch_name);
+            is_first_cpu = false;
         }
         gdb_init_cpu(cpu);
         arm_cpu_register_gdb_regs_for_features(cpu, a64);
         arm_cpu_register_gdb_commands(cpu, a64);
     }
-    #endif
+
+    GDBProcess *process = gdb_get_cpu_process(gdbserver_state.g_cpu);
+    if(process->target_xml) {
+        g_free(process->target_xml);
+        process->target_xml = NULL;
+    }
+
+#endif
 }

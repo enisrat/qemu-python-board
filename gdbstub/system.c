@@ -97,6 +97,7 @@ static void gdb_chr_event(void *opaque, QEMUChrEvent event)
         s->g_cpu = s->c_cpu;
 
         vm_stop(RUN_STATE_PAUSED);
+        gdb_reinit_after_attach();
         replay_gdb_attached();
         break;
     default:
