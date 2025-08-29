@@ -2496,7 +2496,8 @@ void gdb_create_default_process(GDBState *s)
 
 void gdb_reinit_after_attach()
 {
-    #ifdef TARGET_AARCH64
+    /* ONLY WORKS FOR TARGET_AARCH64, but cannot use TARGET_AARCH64 here, so...*/
+    //#ifdef TARGET_AARCH64
 
     CPUState *cpu;
     gchar *arch_name;
@@ -2528,6 +2529,4 @@ void gdb_reinit_after_attach()
         g_free(process->target_xml);
         process->target_xml = NULL;
     }
-
-#endif
 }
