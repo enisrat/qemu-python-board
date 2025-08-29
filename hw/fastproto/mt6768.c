@@ -152,10 +152,13 @@ static void mt6768_init(MachineState * machine)
         object_unref(cpuobj);
     }
 
+    create_unimplemented_device("a", 0x300000, 0x100000000-0x300000);
+
     // Interrupt Controller (IC) created first
     DeviceState *icdev = create_ic();
 
     sysbus_create_varargs("mtk_mcucfg", 0xC530000, NULL);
+    sysbus_create_varargs("mtk_trng", 0x1020f000, NULL);
 
     o = qdev_new("mtk_uart");
     Chardev *chr = qemu_chr_find("uart0");
@@ -184,10 +187,6 @@ static void mt6768_init(MachineState * machine)
 
     o = object_resolve_path_component(object_get_objects_root(), "sram2");
     memory_region_add_subregion(get_system_memory(), 0x200000, &MEMORY_BACKEND(o)->mr);
-
-    create_unimplemented_device("a", 0x300000, 0x01002000-0x300000);
-    create_unimplemented_device("b", 0x01003000, 0x40000000-0x01003000);
-    create_unimplemented_device("c", 0x100000000, 0x100000000);
 
 
     if( load_image_targphys("atf", 0x4CE01000, 0x100000) < 0 ){
