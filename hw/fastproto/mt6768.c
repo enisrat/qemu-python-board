@@ -2,9 +2,7 @@
  * mt6768
  * 
  * Example QEMU args:
- * ./qemu-system-aarch64 -machine mt6768 ... ??
- * 
- * -object memory-backend-file,id=id,size=size,mem-path=dir,share=on|off,discard-data=on|off,merge=on|off,dump=on|off,prealloc=on|off,host-nodes=host-nodes,policy=default|preferred|bind|interleave,align=align,offset=offset,readonly=on|off,rom=on|off|auto
+ * ./qemu-system-aarch64 -machine mt6768 -smp maxcpus=8 -object memory-backend-file,id=sram2,size=458752B,share=off,rom=off,readonly=on,mem-path=your_sram2_file -chardev socket,host=localhost,port=9876,id=uart0 -nographic -d unimp
  */
 
 #include "qemu/osdep.h"
