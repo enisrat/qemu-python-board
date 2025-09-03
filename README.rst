@@ -1,4 +1,12 @@
-For REDFIN: go to folder `hw/fastproto`
+For REDFIN: go to folder ``hw/fastproto``
+
+To build:
+.. code-block:: shell
+
+  mkdir build
+  cd build
+  ../configure --target-list=aarch64-softmmu --enable-debug --disable-werror --enable-gcrypt --disable-tools
+  make -j 16 qemu-system-aarch64
 
 ===========
 QEMU README
