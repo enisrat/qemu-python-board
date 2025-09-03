@@ -92,7 +92,7 @@ static const MemoryRegionOps qcom_tcsr_wonce_ops = {
     .endianness = DEVICE_NATIVE_ENDIAN,
     .valid = {
         .min_access_size = 4,
-        .max_access_size = 4,
+        .max_access_size = 8,
     },
 };
 

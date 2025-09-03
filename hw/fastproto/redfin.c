@@ -2,7 +2,7 @@
  * Redfin (Pixel 4a5G / 5)
  * 
  * Example QEMU args:
- * ./qemu-system-aarch64 -machine redfin -smp maxcpus=8 -bios pbl_sdm865.bin -drive file=bootlun.bin,if=none,id=dr7,readonly=on -device ufs-lu,drive=dr7,bus=ufs-bus,lun=7  -drive file=sde,if=none,id=dr0,readonly=on  -device ufs-lu,drive=dr0,bus=ufs-bus,lun=0 -drive file=sda,if=none,id=dr1,readonly=on  -device ufs-lu,drive=dr1,bus=ufs-bus,lun=1 -drive file=sdd,if=none,id=dr2,readonly=on  -device ufs-lu,drive=dr2,bus=ufs-bus,lun=2 -chardev pty,id=qup
+ * ./qemu-system-aarch64 -machine redfin -smp maxcpus=8 -bios pbl_sdm865.bin -drive file=bootlun.bin,if=none,id=dr7,readonly=on -device ufs-lu,drive=dr7,bus=ufs-bus,lun=7  -drive file=sde,if=none,id=dr0,readonly=on  -device ufs-lu,drive=dr0,bus=ufs-bus,lun=0 -drive file=sda,if=none,id=dr1,readonly=on  -device ufs-lu,drive=dr1,bus=ufs-bus,lun=1 -drive file=sdd,if=none,id=dr2,readonly=on  -device ufs-lu,drive=dr2,bus=ufs-bus,lun=2 -chardev socket,host=localhost,port=9876,id=qup -nographic
  */
 
 #include "qemu/osdep.h"
@@ -52,7 +52,7 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
      * Note that the num-irq property counts both internal and external
      * interrupts; there are always 32 of the former (mandated by GIC spec).
      */
-    qdev_prop_set_uint32(gic, "num-irq", num_irqs + smp_cpus*32);
+    qdev_prop_set_uint32(gic, "num-irq", num_irqs + 32);
     qdev_prop_set_bit(gic, "has-security-extensions", true);
 
     // may need adjusting
@@ -124,7 +124,7 @@ static DeviceState * create_gicv3(int num_irqs, hwaddr dist, hwaddr redist)
 
 static DeviceState *create_ic()
 {
-    return create_gicv3(384, 0x17a00000, 0x17a60000);
+    return create_gicv3(640, 0x17a00000, 0x17a60000);
 }
 
 // pull in modularized code

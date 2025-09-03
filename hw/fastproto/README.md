@@ -1,3 +1,12 @@
+# REDFIN
+
+- machine initialization: `redfin.c`
+- MMIO devices: `qcom_XXX.c`
+- Instrumentations: `instr_XXX.c`
+
+- **chardev** `id=qup` is the UART output of the machine. You can redirect this **chardev** as you like (see QEMU docs).
+
+
 # Fast Prototyping
 
 This folder is intended to quickly code new device HW and boards (machines). 

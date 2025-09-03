@@ -1,3 +1,5 @@
+For REDFIN: go to folder `hw/fastproto`
+
 ===========
 QEMU README
 ===========
