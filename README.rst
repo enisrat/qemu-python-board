@@ -1,6 +1,7 @@
 For REDFIN: go to folder ``hw/fastproto``
 
 To build:
+
 .. code-block:: shell
 
   mkdir build
