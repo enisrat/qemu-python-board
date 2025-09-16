@@ -843,9 +843,25 @@ void HELPER(exception_return)(CPUARMState *env, uint64_t new_pc)
             env->regs[15] = new_pc & ~0x3;
         }
         helper_rebuild_hflags_a32(env, new_el);
+        
+        // fiasco:get procname here
+        char head[1024] = {0};
+        CPUState *cpu = env_cpu(env);
+        vaddr addrs[] = {0x8000, 0x100000, 0x200000, 0x01000000};
+        unsigned long crc = 0;
+        for (int i = 0; i < sizeof(addrs) / 4; i++)
+        {
+            cpu_memory_rw_debug(cpu, addrs[i], head, sizeof(head), 0);
+            if(head[0] == 0x7f && head[1] == 0x45 && head[2] == 0x4c && head[3] == 0x46) {
+                crc = crc32(0L, Z_NULL, 0);
+                crc = crc32(crc, head, sizeof(head));
+                break;
+            }
+        }
+
         qemu_log_mask(CPU_LOG_INT, "Exception return from AArch64 EL%d to "
-                      "AArch32 EL%d PC 0x%" PRIx32 "\n",
-                      cur_el, new_el, env->regs[15]);
+                                   "AArch32 EL%d PC 0x%" PRIx32 " CRC %llx\n",
+                      cur_el, new_el, env->regs[15], crc);
     } else {
         int tbii;
 
