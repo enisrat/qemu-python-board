@@ -174,9 +174,7 @@ static void mt6768_init(MachineState * machine)
 
     // o = object_resolve_path_component(object_get_objects_root(), "dram");
     // memory_region_add_subregion(get_system_memory(), 0x40000000, &MEMORY_BACKEND(o)->mr);
-    MemoryRegion *dram = g_new(MemoryRegion, 1);
-    memory_region_init_ram(dram, 0, "dram", 0xC0000000, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0x40000000, dram);
+    memory_region_add_subregion(get_system_memory(), 0x40000000, machine->ram);
 
 
     MemoryRegion *sram1 = g_new(MemoryRegion, 1);
