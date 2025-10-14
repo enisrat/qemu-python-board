@@ -14,6 +14,8 @@
 #include "tcg/instrument.h"
 #include "crypto/hash.h"
 #include "qemu/log.h"
+#include "sysemu/cpus.h"
+#include "sysemu/cpu-timers.h"
 
 
 unsigned char before_loglevel[] =
@@ -109,9 +111,23 @@ static void at_sigma_0_run(CPUState *cs, vaddr pc, void *opaque)
     qemu_ram_foreach_block(ram_block_replace, &fr);
 }
 
+int64_t *get_warped_clock(void) {
+    static int64_t ctr = 0;
+    return ctr++;
+}
+
+static void test_timer_warping(CPUState *cs, vaddr pc, void *opaque)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    qemu_log_mask(LOG_TRACE, "Test timer %llx\n", pc);
+    cpus_get_accel()->get_virtual_clock = get_warped_clock;
+}
+
 void teei_instrument()
 {
     add_instrument(0xFFF007354 , -1, set_UART_flag, 0); //Debug output --> UART
     add_instrument(0xFFFFFF80F00144FC, -1, set_UART_flag_l4, 0); //Debug output --> UART
     add_instrument(0xFFFFFF80F00258A8, -1, at_sigma_0_run, 0);
+
+    //add_instrument(0x4c40881c, -1, test_timer_warping, 0);
 }

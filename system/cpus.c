@@ -655,7 +655,7 @@ void cpus_register_accel(const AccelOpsClass *ops)
     cpus_accel = ops;
 }
 
-const AccelOpsClass *cpus_get_accel(void)
+AccelOpsClass *cpus_get_accel(void)
 {
     /* broken if we call this early */
     assert(cpus_accel);
