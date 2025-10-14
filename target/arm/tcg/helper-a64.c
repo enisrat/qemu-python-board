@@ -845,7 +845,7 @@ void HELPER(exception_return)(CPUARMState *env, uint64_t new_pc)
         helper_rebuild_hflags_a32(env, new_el);
         
         unsigned long crc = 0;
-        #ifdef DEBUG
+        #ifndef __OPTIMIZE__
         // fiasco:get procname here
         char head[1024] = {0};
         CPUState *cpu = env_cpu(env);
@@ -860,6 +860,7 @@ void HELPER(exception_return)(CPUARMState *env, uint64_t new_pc)
                 break;
             }
         }
+
         #endif
 
         qemu_log_mask(CPU_LOG_INT, "Exception return from AArch64 EL%d to "
