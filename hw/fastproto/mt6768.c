@@ -184,6 +184,8 @@ static void mt6768_init(MachineState * machine)
     o = object_resolve_path_component(object_get_objects_root(), "sram2");
     memory_region_add_subregion(get_system_memory(), 0x200000, &MEMORY_BACKEND(o)->mr);
 
+    o = object_resolve_path_component(object_get_objects_root(), "config_area");
+    memory_region_add_subregion(get_system_memory(), 0x300000, &MEMORY_BACKEND(o)->mr);
 
     if( load_image_targphys("atf", 0x4CE01000, 0x100000) < 0 ){
         error_report("could not load atf");
